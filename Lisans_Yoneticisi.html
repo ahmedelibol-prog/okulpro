@@ -2,62 +2,106 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>OkulPro Pro — Lisans Yöneticisi</title>
+<title>OkulPro — Lisans Yöneticisi</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 40'><defs><linearGradient id='n' x1='0' y1='0' x2='40' y2='40' gradientUnits='userSpaceOnUse'><stop stop-color='%231e293b'/><stop offset='1' stop-color='%230f172a'/></linearGradient><linearGradient id='g' x1='20' y1='0' x2='64' y2='40' gradientUnits='userSpaceOnUse'><stop stop-color='%23fbbf24'/><stop offset='1' stop-color='%23b45309'/></linearGradient><clipPath id='c'><circle cx='22' cy='20' r='16'/></clipPath></defs><circle cx='22' cy='20' r='16' fill='url(%23n)'/><circle cx='42' cy='20' r='16' fill='url(%23g)'/><circle cx='42' cy='20' r='16' fill='%237c4a08' opacity='0.7' clip-path='url(%23c)'/></svg>" />
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-.card{background:#1e293b;border-radius:16px;border:1px solid #334155;padding:32px;max-width:520px;width:100%}
-h1{font-size:22px;font-weight:800;margin-bottom:4px;background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-p{color:#64748b;font-size:13px;margin-bottom:24px}
-label{display:block;font-size:11px;color:#94a3b8;margin-bottom:4px}
-input,select{width:100%;padding:10px 12px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;font-size:14px;outline:none;margin-bottom:12px}
-button{width:100%;padding:12px;border-radius:10px;border:none;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;font-weight:700;font-size:15px;cursor:pointer;margin-bottom:8px}
-button:hover{opacity:0.9}
-.key-box{background:#0f172a;border:2px solid #3b82f6;border-radius:10px;padding:16px;text-align:center;margin:16px 0}
-.key{font-size:22px;font-family:monospace;font-weight:700;color:#60a5fa;letter-spacing:0.12em}
-.copy-btn{background:#334155;font-size:13px;padding:8px;margin-top:8px}
-.log{margin-top:20px;border-top:1px solid #334155;padding-top:16px}
-.log-row{padding:6px 10px;background:#0f172a;border-radius:6px;margin-bottom:4px;font-size:12px;display:flex;justify-content:space-between}
-.badge{background:#1e4d2b;color:#6ee7b7;padding:2px 8px;border-radius:4px;font-size:10px}
-.divider{border:none;border-top:1px solid #334155;margin:20px 0}
-.check-box{background:#0f172a;border-radius:10px;padding:16px;margin-top:12px}
+.card{background:#1e293b;border-radius:16px;border:1px solid #334155;padding:32px;max-width:560px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.4)}
+.header{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.header svg{flex-shrink:0}
+.header h1{font-size:24px;font-weight:800;letter-spacing:-0.02em}
+.header h1 .pro{color:#fbbf24}
+p.subtitle{color:#94a3b8;font-size:13px;margin-bottom:24px;padding-left:60px;margin-top:-4px}
+label{display:block;font-size:11px;color:#94a3b8;margin-bottom:4px;margin-top:12px;text-transform:uppercase;letter-spacing:0.05em}
+input,select{width:100%;padding:11px 13px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;font-size:14px;outline:none;font-family:inherit}
+input:focus,select:focus{border-color:#fbbf24}
+button{width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#1e3a8a,#0f172a);color:#fff;font-weight:700;font-size:15px;cursor:pointer;margin-top:14px;font-family:inherit;transition:all 0.15s}
+button:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,0,0,0.3)}
+button.gold{background:linear-gradient(135deg,#fbbf24,#b45309);color:#1f2937}
+.key-box{background:#0f172a;border:2px solid #fbbf24;border-radius:10px;padding:18px;text-align:center;margin-top:16px}
+.key{font-size:22px;font-family:'Courier New',monospace;font-weight:700;color:#fbbf24;letter-spacing:0.15em}
+.copy-btn{background:#334155;font-size:13px;padding:9px;margin-top:10px}
+.copy-btn:hover{background:#475569}
+.log{margin-top:24px;border-top:1px solid #334155;padding-top:18px}
+.log-row{padding:8px 12px;background:#0f172a;border-radius:6px;margin-bottom:6px;font-size:12px;display:flex;justify-content:space-between;align-items:center;border:1px solid #1e293b}
+.badge{padding:3px 9px;border-radius:6px;font-size:10px;font-weight:600}
+.badge.full{background:#1e3a8a;color:#dbeafe}
+.badge.trial{background:#374151;color:#9ca3af}
+.badge.multi{background:#92400e;color:#fbbf24}
+.divider{border:none;border-top:1px solid #334155;margin:22px 0}
+.check-box{background:#0f172a;border-radius:10px;padding:16px;margin-top:14px;border:1px solid #334155}
+.price-info{background:#0f172a;border-left:3px solid #fbbf24;padding:10px 14px;margin-top:8px;border-radius:6px;font-size:12px;color:#94a3b8}
+.tag{display:inline-block;background:#1e3a8a;color:#dbeafe;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;margin-left:6px;vertical-align:middle}
+.warning{background:#451a03;color:#fbbf24;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:18px;border:1px solid #92400e}
 </style>
 </head>
 <body>
 <div class="card">
-  <h1>📅 OkulPro Pro</h1>
-  <p>Lisans Yöneticisi — Yalnızca satıcı kullanımı içindir</p>
+  <div class="header">
+    <svg width="48" height="30" viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="navy" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse"><stop stop-color="#1e293b"/><stop offset="1" stop-color="#0f172a"/></linearGradient>
+        <linearGradient id="gold" x1="20" y1="0" x2="64" y2="40" gradientUnits="userSpaceOnUse"><stop stop-color="#fbbf24"/><stop offset="1" stop-color="#b45309"/></linearGradient>
+        <clipPath id="leftClip"><circle cx="22" cy="20" r="16"/></clipPath>
+      </defs>
+      <circle cx="22" cy="20" r="16" fill="url(#navy)" stroke="#fbbf24" stroke-width="0.5"/>
+      <g opacity="0.9">
+        <rect x="15" y="14" width="3" height="3" rx="0.6" fill="white" opacity="0.4"/>
+        <rect x="19" y="14" width="3" height="3" rx="0.6" fill="white" opacity="0.4"/>
+        <rect x="23" y="14" width="3" height="3" rx="0.6" fill="white" opacity="0.4"/>
+        <rect x="15" y="18" width="3" height="3" rx="0.6" fill="white" opacity="0.4"/>
+        <rect x="19" y="18" width="3" height="3" rx="0.6" fill="#fbbf24"/>
+        <rect x="23" y="18" width="3" height="3" rx="0.6" fill="white" opacity="0.4"/>
+        <rect x="15" y="22" width="3" height="3" rx="0.6" fill="white" opacity="0.4"/>
+        <rect x="19" y="22" width="3" height="3" rx="0.6" fill="white" opacity="0.4"/>
+        <rect x="23" y="22" width="3" height="3" rx="0.6" fill="white" opacity="0.4"/>
+      </g>
+      <circle cx="42" cy="20" r="16" fill="url(#gold)"/>
+      <circle cx="42" cy="20" r="16" fill="#7c4a08" opacity="0.7" clip-path="url(#leftClip)"/>
+      <path d="M 36 20 L 40 24 L 48 14" stroke="white" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <h1>Okul<span class="pro">Pro</span></h1>
+  </div>
+  <p class="subtitle">Lisans Yöneticisi · Sadece satıcı kullanımı</p>
+
+  <div class="warning">⚠️ Bu sayfa müşterilere gösterilmez. Yalnızca lisans anahtarı üretmek içindir.</div>
 
   <!-- KEY GENERATOR -->
   <div>
-    <label>Okul / Müşteri Adı</label>
+    <label>📋 Okul / Müşteri Adı</label>
     <input id="schoolName" placeholder="Örn: Atatürk Ortaokulu" />
-    <label>Lisans Türü</label>
+
+    <label>💎 Lisans Türü</label>
     <select id="licType">
-      <option value="FULL">🏫 Tam Lisans (1 Yıl) — 499₺</option>
+      <option value="FULL">🏫 OkulPro Lisansı (1 Yıl) — 1000₺</option>
       <option value="TRIAL">🔓 Genişletilmiş Demo (3 Ay) — Ücretsiz</option>
-      <option value="MULTI">🏢 Çoklu Okul (5 Okul) — 1999₺</option>
     </select>
+    <div class="price-info" id="priceInfo">
+      Yıllık tek okul lisansı için 1000₺ (KDV dahil). Vakıfbank IBAN'a yatırılır, dekont WhatsApp'tan iletilince anahtar üretilir.
+    </div>
+
     <button onclick="generate()">🔑 Lisans Anahtarı Oluştur</button>
   </div>
 
   <div id="result" style="display:none">
     <div class="key-box">
-      <div style="font-size:11px;color:#64748b;margin-bottom:6px">Oluşturulan Lisans Anahtarı</div>
+      <div style="font-size:11px;color:#64748b;margin-bottom:8px;letter-spacing:0.1em">⬇️ OLUŞTURULAN ANAHTAR</div>
       <div class="key" id="genKey"></div>
-      <div style="font-size:11px;color:#475569;margin-top:6px" id="keyInfo"></div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:8px" id="keyInfo"></div>
     </div>
     <button class="copy-btn" onclick="copyKey()">📋 Kopyala</button>
+    <button class="copy-btn gold" onclick="sendWA()">💬 WhatsApp ile Müşteriye Gönder</button>
   </div>
 
   <hr class="divider">
 
   <!-- KEY VALIDATOR -->
   <div>
-    <label>Anahtar Doğrula</label>
-    <div style="display:flex;gap:6px">
-      <input id="checkKey" placeholder="Müşteriden gelen anahtarı girin" style="margin:0;flex:1" />
-      <button onclick="checkKey()" style="width:auto;padding:10px 16px;margin:0;font-size:13px">Doğrula</button>
+    <label>🔍 Anahtar Doğrula</label>
+    <div style="display:flex;gap:8px">
+      <input id="checkKey" placeholder="Müşteriden gelen anahtarı girin" style="flex:1" />
+      <button onclick="checkKey()" style="width:auto;padding:11px 18px;margin:0;font-size:13px">Doğrula</button>
     </div>
     <div id="checkResult" class="check-box" style="display:none"></div>
   </div>
@@ -66,14 +110,26 @@ button:hover{opacity:0.9}
 
   <!-- LOG -->
   <div class="log">
-    <div style="font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:8px">📋 Oluşturulan Anahtarlar</div>
+    <div style="font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+      <span>📋 Üretilen Anahtarlar</span>
+      <span style="font-size:11px;color:#64748b" id="logCount"></span>
+    </div>
     <div id="log"></div>
-    <div id="emptyLog" style="color:#475569;font-size:12px;text-align:center;padding:12px">Henüz anahtar oluşturulmadı</div>
+    <div id="emptyLog" style="color:#475569;font-size:12px;text-align:center;padding:14px">Henüz anahtar oluşturulmadı</div>
   </div>
 </div>
 
 <script>
 const keys = JSON.parse(localStorage.getItem("okulpro_keys") || "[]");
+const PRICE_INFO = {
+  FULL: "Yıllık OkulPro lisansı için 1000₺ (KDV dahil). Vakıfbank IBAN'a yatırılır, dekont WhatsApp'tan iletilince anahtar üretilir.",
+  TRIAL: "Yeni müşterilere 3 aylık ücretsiz demo. Tam özellikler aktif. Müşteri kendi verilerini girebilir."
+};
+
+document.getElementById("licType").addEventListener("change", e => {
+  document.getElementById("priceInfo").textContent = PRICE_INFO[e.target.value];
+});
+
 renderLog();
 
 function generate() {
@@ -81,17 +137,18 @@ function generate() {
   const type = document.getElementById("licType").value;
   if (!name) { alert("Okul adı girin!"); return; }
 
-  const base = "DP" + type.slice(0,1) + Date.now().toString(36).toUpperCase().slice(-6) + name.replace(/\s/g,"").slice(0,3).toUpperCase();
+  const base = "OP" + type.slice(0,1) + Date.now().toString(36).toUpperCase().slice(-6) + name.replace(/\s/g,"").slice(0,3).toUpperCase();
   const sum = base.split("").reduce((s,c) => s + c.charCodeAt(0), 0) % 100;
   const key = base + String(sum).padStart(2,"0");
 
   document.getElementById("genKey").textContent = key;
-  document.getElementById("keyInfo").textContent = `${name} · ${type === "FULL" ? "1 Yıl" : type === "TRIAL" ? "3 Ay" : "5 Okul"} · ${new Date().toLocaleDateString("tr-TR")}`;
+  const typeLabel = type === "FULL" ? "1 Yıl Lisans" : "3 Ay Demo";
+  document.getElementById("keyInfo").textContent = `${name} · ${typeLabel} · ${new Date().toLocaleDateString("tr-TR")}`;
   document.getElementById("result").style.display = "block";
 
   const record = { key, name, type, date: new Date().toLocaleDateString("tr-TR") };
   keys.unshift(record);
-  try { localStorage.setItem("okulpro_keys", JSON.stringify(keys.slice(0, 50))); } catch(e) {}
+  try { localStorage.setItem("okulpro_keys", JSON.stringify(keys.slice(0, 100))); } catch(e) {}
   renderLog();
 }
 
@@ -102,6 +159,13 @@ function copyKey() {
     btn.textContent = "✅ Kopyalandı!";
     setTimeout(() => btn.textContent = "📋 Kopyala", 2000);
   });
+}
+
+function sendWA() {
+  const key = document.getElementById("genKey").textContent;
+  const info = document.getElementById("keyInfo").textContent;
+  const msg = `Merhaba!\n\nOkulPro lisansınız hazır 🎉\n\nLisans Anahtarı:\n${key}\n\n${info}\n\nKurulum:\n1. okulpro.vercel.app adresine girin\n2. "Lisans Etkinleştir" butonuna basın\n3. Bu anahtarı yapıştırın\n\nİyi kullanımlar!`;
+  window.open("https://wa.me/?text=" + encodeURIComponent(msg), "_blank");
 }
 
 function checkKey() {
@@ -118,29 +182,36 @@ function checkKey() {
 
   const record = keys.find(k => k.key === key);
   if (valid) {
-    const type = key.startsWith("DPF") ? "Tam Lisans" : key.startsWith("DPT") ? "Demo" : "Çoklu";
-    res.innerHTML = `<span style="color:#6ee7b7">✅ Geçerli Anahtar</span><br><span style="color:#94a3b8;font-size:11px">Tür: ${type}${record ? " · " + record.name + " · " + record.date : ""}</span>`;
+    let type = "Bilinmeyen";
+    if (key.startsWith("OPF") || key.startsWith("DPF")) type = "OkulPro Lisansı (1 Yıl)";
+    else if (key.startsWith("OPT") || key.startsWith("DPT")) type = "Demo (3 Ay)";
+    res.innerHTML = `<div style="color:#6ee7b7;font-weight:700;margin-bottom:6px">✅ Geçerli Anahtar</div><div style="color:#94a3b8;font-size:12px">Tür: ${type}${record ? "<br>Müşteri: " + record.name + "<br>Üretim: " + record.date : ""}</div>`;
   } else {
-    res.innerHTML = '<span style="color:#fca5a5">❌ Geçersiz Anahtar</span>';
+    res.innerHTML = '<div style="color:#fca5a5;font-weight:700">❌ Geçersiz Anahtar</div><div style="color:#94a3b8;font-size:12px;margin-top:4px">Bu anahtar OkulPro tarafından üretilmemiş veya yazım hatası var.</div>';
   }
 }
 
 function renderLog() {
   const log = document.getElementById("log");
   const empty = document.getElementById("emptyLog");
+  const count = document.getElementById("logCount");
+  count.textContent = keys.length ? `Toplam ${keys.length}` : "";
   if (!keys.length) { log.innerHTML = ""; empty.style.display = "block"; return; }
   empty.style.display = "none";
-  log.innerHTML = keys.slice(0, 20).map(k => `
-    <div class="log-row">
-      <div>
-        <span style="font-family:monospace;font-size:11px;color:#60a5fa">${k.key}</span>
-        <span style="color:#94a3b8;margin-left:6px;font-size:11px">${k.name}</span>
+  log.innerHTML = keys.slice(0, 30).map(k => {
+    const badgeClass = k.type === "FULL" ? "full" : "trial";
+    const badgeText = k.type === "FULL" ? "1 Yıl" : "Demo";
+    return `<div class="log-row">
+      <div style="flex:1;min-width:0">
+        <div style="font-family:monospace;font-size:11px;color:#fbbf24;letter-spacing:0.05em">${k.key}</div>
+        <div style="color:#94a3b8;font-size:11px;margin-top:2px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap">${k.name}</div>
       </div>
-      <div style="display:flex;gap:4px;align-items:center">
-        <span class="badge">${k.type}</span>
+      <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+        <span class="badge ${badgeClass}">${badgeText}</span>
         <span style="color:#475569;font-size:10px">${k.date}</span>
       </div>
-    </div>`).join("");
+    </div>`;
+  }).join("");
 }
 </script>
 </body>
