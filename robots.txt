@@ -1,0 +1,6 @@
+# OkulPro - Tüm arama motorlarına izin
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://okulpro.vercel.app/sitemap.xml
