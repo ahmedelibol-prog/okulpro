@@ -7,17 +7,8 @@
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 62 40'><defs><linearGradient id='n' x1='0' y1='0' x2='40' y2='40' gradientUnits='userSpaceOnUse'><stop stop-color='%231e293b'/><stop offset='1' stop-color='%230f172a'/></linearGradient><linearGradient id='g' x1='20' y1='0' x2='62' y2='40' gradientUnits='userSpaceOnUse'><stop stop-color='%23fbbf24'/><stop offset='1' stop-color='%23b45309'/></linearGradient><clipPath id='c'><circle cx='22' cy='20' r='16'/></clipPath></defs><circle cx='22' cy='20' r='16' fill='url(%23n)'/><g opacity='0.9'><rect x='15' y='14' width='3' height='3' rx='0.6' fill='white' opacity='0.4'/><rect x='19' y='14' width='3' height='3' rx='0.6' fill='white' opacity='0.4'/><rect x='23' y='14' width='3' height='3' rx='0.6' fill='white' opacity='0.4'/><rect x='15' y='18' width='3' height='3' rx='0.6' fill='white' opacity='0.4'/><rect x='19' y='18' width='3' height='3' rx='0.6' fill='%23fbbf24'/><rect x='23' y='18' width='3' height='3' rx='0.6' fill='white' opacity='0.4'/><rect x='15' y='22' width='3' height='3' rx='0.6' fill='white' opacity='0.4'/><rect x='19' y='22' width='3' height='3' rx='0.6' fill='white' opacity='0.4'/><rect x='23' y='22' width='3' height='3' rx='0.6' fill='white' opacity='0.4'/></g><circle cx='40' cy='20' r='16' fill='url(%23g)'/><circle cx='40' cy='20' r='16' fill='%237c4a08' opacity='0.7' clip-path='url(%23c)'/><path d='M 34 20 L 38 24 L 46 14' stroke='white' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>" />
   <link rel="canonical" href="https://okulpro.vercel.app/" />
 
-  <!-- Tailwind CSS (CDN — preflight kapalı, app inline-style ile çakışmasın) -->
-  <script>
-    tailwind = window.tailwind || {};
-    tailwind.config = { corePlugins: { preflight: false } };
-  </script>
+  <!-- Tailwind CSS (CDN — Vite ile uyumlu) -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    /* Landing için bazı preflight benzeri reset (sadece Tailwind kullanan elemanlar) */
-    [class*="text-"], [class*="font-"] { box-sizing: border-box; }
-    body { margin: 0; -webkit-font-smoothing: antialiased; }
-  </style>
 
   <!-- ─── BAŞLIK & AÇIKLAMA (Google sonuç sayfası için) ─── -->
   <title>OkulPro — Ders Programı Hazırlama Programı | Otomatik & Türkçe</title>

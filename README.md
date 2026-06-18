@@ -1,10 +1,13 @@
-# OkulPro — Boş Ekran Düzeltmesi + Nav Sade
+# OkulPro — Önceki Çalışan Sürüm + Küçük İyileştirmeler
 
-Düzeltmeler:
-- Tailwind CDN preflight kapatıldı (app inline-style ile çakışmıyor)
-- "Merhaba" yanındaki 👋 emoji kaldırıldı
-- "Demo'yu Dene" eski koyu (lacivert) tasarımına döndü
-- Lisanslıyken okul adı otomatik yazıyor
+Mevcut:
+- Boş ekran SORUNU YOK (React.useState fix kalıcı)
+- Tailwind CDN normal şekilde (preflight aktif)
+- Lisanslı kullanıcı boş welcome ekranı görür ("Hoş Geldiniz! Bilgilerinizi Girin")
+
+Yeni iyileştirmeler:
+- "Merhaba" yanındaki 👋 emoji kalktı
+- "Demo'yu Dene" eski koyu (lacivert) tasarımı
+- Lisans aktifken okul adı otomatik görünür (sağ üstte yeşil rozet)
 
 Vercel: Framework Preset = Other, build/install/output hepsi boş.
-ÖNEMLİ: Yüklemeden sonra Ctrl+Shift+R ile sıkı yenileme yap!
