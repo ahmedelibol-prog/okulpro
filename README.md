@@ -1,10 +1,9 @@
-# OkulPro — Bilgiler ekranı görsel rötuş
+# OkulPro — Tüm İç Ekranlar Premium Görsel
 
-Sadece görseller güncellendi:
-- Başlık: "Bilgiler." büyük + tipografi hiyerarşisi
-- Lisans banner: mor/pembe → amber gradient + lacivert "Lisans Al" butonu
-- Sekmeler: pill-style segmented control, aktif sekme lacivert
-
-Tüm CRUD, lisans kontrolü, state yönetimi AYNEN korundu.
+Sadece görsel rötuş — işleyiş aynı:
+- Bilgiler. → amber lisans banner + lacivert pill sekmeler
+- Program. → lacivert "Yeniden Hazırla" + pill view modes
+- Ayarlar. → premium başlık tipografisi
+- Yazdır. → lacivert buton + yumuşak A4 kart
 
 Vercel: Framework Preset = Other, build/install/output hepsi boş.
