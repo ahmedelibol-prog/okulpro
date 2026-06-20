@@ -597,6 +597,110 @@ Error generating stack: `+a.message+`
 })();
 </script>
 
+<script>
+/* OkulPro — Zorluk Etiketi + Demo Rozet */
+(function(){
+  /* Demo modu mu? */
+  function isDemoMode() {
+    try { return localStorage.getItem("okulpro_is_demo_loaded") === "1"; }
+    catch(_) { return false; }
+  }
+
+  /* Sayfanın üstüne küçük DEMO rozet ekle */
+  function addDemoBadge() {
+    if (!isDemoMode()) return;
+    if (document.getElementById("op-demo-badge")) return;
+    if (!window.location.pathname.startsWith("/app")) return;
+
+    var badge = document.createElement("div");
+    badge.id = "op-demo-badge";
+    badge.style.cssText = [
+      "position:fixed",
+      "bottom:16px",
+      "right:16px",
+      "z-index:9999",
+      "background:linear-gradient(135deg, #f59e0b, #b45309)",
+      "color:#fff",
+      "padding:8px 14px",
+      "border-radius:999px",
+      "font-size:12px",
+      "font-weight:700",
+      "letter-spacing:0.03em",
+      "box-shadow:0 8px 24px -4px rgba(245,158,11,0.4)",
+      "cursor:pointer",
+      "display:inline-flex",
+      "align-items:center",
+      "gap:6px",
+      "font-family:-apple-system, system-ui, sans-serif",
+      "transition:transform .15s ease"
+    ].join(";");
+    badge.innerHTML = '<span style="font-size:14px">👀</span> DEMO VERİLERİ · Lisans alınca temizlenir';
+    badge.title = "Lisans almadan denemek için demo veriler otomatik yüklendi";
+    badge.onmouseenter = function(){ badge.style.transform = "translateY(-2px)"; };
+    badge.onmouseleave = function(){ badge.style.transform = "translateY(0)"; };
+    document.body.appendChild(badge);
+  }
+
+  /* Yıldız butonlarına "Zorluk" etiketi ekle */
+  function addDifficultyLabels() {
+    var buttons = document.querySelectorAll("button");
+    for (var i = 0; i < buttons.length; i++) {
+      var btn = buttons[i];
+      if (btn.dataset.opLabeled === "1") continue;
+      var text = (btn.textContent || "").trim();
+      /* Sadece yıldız karakterlerinden oluşan buton mu? */
+      if (text.length === 0) continue;
+      if (text.length > 12) continue; /* en fazla 5 yıldız + birkaç boşluk */
+      /* Yıldız emoji kontrolü (⭐) */
+      var stars = text.match(/⭐/g);
+      if (!stars || stars.length < 1 || stars.length > 5) continue;
+      /* Yıldız dışı karakter olmamalı */
+      var nonStar = text.replace(/⭐/g, "").trim();
+      if (nonStar.length > 0) continue;
+
+      /* Bu bir zorluk butonu */
+      btn.dataset.opLabeled = "1";
+      btn.title = "Zorluk derecesi (1-5) — Tıkla değiştir";
+
+      /* Önüne "ZORLUK" etiketi ekle */
+      var label = document.createElement("span");
+      label.textContent = "ZORLUK:";
+      label.style.cssText = [
+        "font-size:10px",
+        "color:#94a3b8",
+        "font-weight:800",
+        "margin-right:6px",
+        "letter-spacing:0.08em",
+        "user-select:none"
+      ].join(";");
+      label.className = "op-difficulty-label";
+      if (btn.parentNode) {
+        btn.parentNode.insertBefore(label, btn);
+      }
+    }
+  }
+
+  function apply() {
+    addDemoBadge();
+    addDifficultyLabels();
+  }
+
+  function watch() {
+    apply();
+    var obs = new MutationObserver(function(){ apply(); });
+    if (document.body) {
+      obs.observe(document.body, { childList: true, subtree: true });
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", watch);
+  } else {
+    watch();
+  }
+})();
+</script>
+
 </head>
 <body>
   <div id="root"></div>
