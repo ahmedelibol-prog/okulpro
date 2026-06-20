@@ -1,11 +1,10 @@
-# OkulPro — MEB Şablonu Entegrasyonu (Faz 1)
+# OkulPro — Logo/Ana Sayfa Davranış Takası
 
-YENİ: Dersler sekmesinde "MEB Şablonu Yükle" butonu
-- 4 okul türü: İlkokul (30h), Ortaokul (35h), Anadolu Lisesi (40h), Meslek (44h)
-- Modal'da 2 adım: Okul türü seç → ders önizleme
-- Duplicate kontrolü (aynı ad varsa atlanır, görsel olarak soluk)
-- Checkbox ile istediğini seç/çıkar, "Tümünü Seç/Hiçbiri"
-- Her dersin önerilen MEB saati saklanır (metadata)
-- Mevcut listeyi BOZMAZ, sadece üstüne ekler
+YENİ:
+- Logo'ya tıklayınca → Tanıtım sayfasına (/) gider (reklam/landing)
+- "Ana Sayfa" butonuna tıklayınca → Genel Bakış / Ana menü (/app) açılır
+- Demo auto-load mantığı korundu (lisanssızsa otomatik demo, lisans alınca temiz)
+
+Mevcut bundle'a dokunulmadı, sadece index.html head'ine 2 script enjekte edildi.
 
 Vercel: Framework Preset = Other, build/install/output hepsi boş.
