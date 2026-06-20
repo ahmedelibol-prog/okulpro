@@ -1,11 +1,16 @@
-# OkulPro — Demo Rozet + Zorluk Etiketi
+# OkulPro — Akıllı Demo Yükleyici v2
 
-YENİ:
-- Sağ altta "👀 DEMO VERİLERİ" rozeti (sadece demo modunda görünür)
-- Ders listesinde yıldız butonunun önünde "ZORLUK:" etiketi
-- Yıldız buton title'ı: "Zorluk derecesi (1-5) — Tıkla değiştir"
-- Önceki tüm script'ler korundu (demo auto-load, logo/anasayfa takası)
+DÜZELTME:
+- v1 sadece "veri yok" durumunda demo yüklüyordu, eski boş veri kaldıysa atlıyordu
+- v2 "veri var ama öğretmen array'i boş" durumunda da demo yükler
+- v2 yazdıktan sonra React state'i tazelemek için sayfayı bir kez yeniler 
+  (sessionStorage flag ile loop önlenir)
+- Console'da detaylı debug log: [OkulPro] Durum: Lisans: VAR/YOK | Veri: BOŞ/DOLU | Demo flag: VAR/YOK
 
-GÜVENLİK: Pozisyon-bazlı güvenli enjeksiyon, yazdırma şablonu sağlam.
+KORUNAN:
+- Logo → Tanıtım, Ana Sayfa → Genel Bakış takası
+- Sağ alt DEMO rozeti
+- Yıldız "ZORLUK:" etiketi
+- Yazdırma şablonu sağlam
 
-Vercel: Framework Preset = Other, build/install/output hepsi boş.
+ÖNEMLİ: Yüklemeden sonra F12 → Application → Clear site data → Ctrl+Shift+R
