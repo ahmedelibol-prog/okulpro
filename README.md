@@ -1,10 +1,15 @@
-# OkulPro — Logo/Ana Sayfa Davranış Takası
+# OkulPro — Demo + Logo/Ana Sayfa (Düzeltilmiş)
 
-YENİ:
-- Logo'ya tıklayınca → Tanıtım sayfasına (/) gider (reklam/landing)
-- "Ana Sayfa" butonuna tıklayınca → Genel Bakış / Ana menü (/app) açılır
-- Demo auto-load mantığı korundu (lisanssızsa otomatik demo, lisans alınca temiz)
+DÜZELTME:
+- Önceki paketteki replace yanlışlıkla yazdırma şablonunun içindeki 
+  </head><body>'yi de değiştirip bundle'ı bozmuştu. Bu sürümde pozisyon
+  tabanlı güvenli enjeksiyon kullanıldı.
 
-Mevcut bundle'a dokunulmadı, sadece index.html head'ine 2 script enjekte edildi.
+ÖZELLİKLER (Korunan):
+- Demo auto-load (lisanssızsa otomatik 60 atama yüklenir)
+- Lisans alınca demo otomatik temizlenir
+- Logo → Tanıtım sayfası (/)
+- "← Ana Sayfa" butonu → Genel Bakış (/app)
 
 Vercel: Framework Preset = Other, build/install/output hepsi boş.
+ÖNEMLİ: Yüklemeden sonra Ctrl+Shift+R ile sıkı yenileme yap!
