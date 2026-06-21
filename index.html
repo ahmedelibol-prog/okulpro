@@ -739,6 +739,74 @@ Error generating stack: `+a.message+`
 })();
 </script>
 
+<script>
+/* OkulPro — Nöbet Çizelgesi Butonu */
+(function(){
+  function addNobetButton() {
+    if (!window.location.pathname.startsWith("/app")) return;
+    if (document.getElementById("op-nobet-btn")) return;
+
+    var header = document.querySelector("header");
+    if (!header) return;
+
+    /* Header içinde sağa eklemek için uygun bir alan bul */
+    var anaSayfaLink = null;
+    var allLinks = header.querySelectorAll('a[href="/"]');
+    for (var i = 0; i < allLinks.length; i++) {
+      var t = (allLinks[i].textContent || "").trim().toLowerCase();
+      if (t.indexOf("ana sayfa") !== -1) { anaSayfaLink = allLinks[i]; break; }
+    }
+    if (!anaSayfaLink) return;
+
+    /* Nöbet butonu oluştur */
+    var btn = document.createElement("a");
+    btn.id = "op-nobet-btn";
+    btn.href = "/nobet.html";
+    btn.title = "Nöbet çizelgesi hazırla";
+    btn.style.cssText = [
+      "display:inline-flex",
+      "align-items:center",
+      "gap:6px",
+      "padding:7px 14px",
+      "background:linear-gradient(135deg, #1e3a8a, #1e293b)",
+      "color:#fff",
+      "border-radius:10px",
+      "text-decoration:none",
+      "font-size:13px",
+      "font-weight:700",
+      "letter-spacing:-0.01em",
+      "transition:all .15s ease",
+      "border:1px solid #1e3a8a",
+      "box-shadow:0 4px 12px rgba(30,58,138,0.2)",
+      "white-space:nowrap",
+      "margin-left:8px"
+    ].join(";");
+    btn.innerHTML = '<span style="font-size:14px">📋</span> Nöbet Çizelgesi';
+    btn.onmouseenter = function(){ btn.style.transform = "translateY(-1px)"; btn.style.boxShadow = "0 8px 20px rgba(30,58,138,0.35)"; };
+    btn.onmouseleave = function(){ btn.style.transform = "translateY(0)"; btn.style.boxShadow = "0 4px 12px rgba(30,58,138,0.2)"; };
+
+    /* Ana Sayfa butonunun yanına ekle */
+    if (anaSayfaLink.parentNode) {
+      anaSayfaLink.parentNode.insertBefore(btn, anaSayfaLink.nextSibling);
+    }
+  }
+
+  function watch() {
+    addNobetButton();
+    var obs = new MutationObserver(function(){ addNobetButton(); });
+    if (document.body) {
+      obs.observe(document.body, { childList: true, subtree: true });
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", watch);
+  } else {
+    watch();
+  }
+})();
+</script>
+
 </head>
 <body>
   <div id="root"></div>

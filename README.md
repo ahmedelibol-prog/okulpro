@@ -1,16 +1,19 @@
-# OkulPro — Akıllı Demo Yükleyici v2
+# OkulPro — Nöbet Çizelgesi Entegrasyonu
 
-DÜZELTME:
-- v1 sadece "veri yok" durumunda demo yüklüyordu, eski boş veri kaldıysa atlıyordu
-- v2 "veri var ama öğretmen array'i boş" durumunda da demo yükler
-- v2 yazdıktan sonra React state'i tazelemek için sayfayı bir kez yeniler 
-  (sessionStorage flag ile loop önlenir)
-- Console'da detaylı debug log: [OkulPro] Durum: Lisans: VAR/YOK | Veri: BOŞ/DOLU | Demo flag: VAR/YOK
+YENİ:
+- /nobet.html standalone sayfası eklendi
+- /app içinde "📋 Nöbet Çizelgesi" butonu (Ana Sayfa yanında)
+- Nöbet sayfası OkulPro localStorage'ından öğretmenleri otomatik okur
+- Eğer ders programı oluşturulmuşsa: gerçek günlük ders saatleri kullanılır
+- Oluşturulmamışsa: atamalardan tahmini saatler (5 güne eşit dağıtım)
+- Adil rotasyon algoritması: en az nöbet + bölge çeşitliliği + o gün az dersi olan tercih
+- Çıktı: localStorage'a "okulpro_nobet" key'i ile kaydedilir
+- Yazdırma desteği
 
-KORUNAN:
-- Logo → Tanıtım, Ana Sayfa → Genel Bakış takası
-- Sağ alt DEMO rozeti
-- Yıldız "ZORLUK:" etiketi
-- Yazdırma şablonu sağlam
+DOSYALAR:
+- index.html (mevcut bundle + 4 inject script)
+- nobet.html (yeni standalone sayfa)
+- Lisans_Yoneticisi.html
+- vercel.json, robots.txt, sitemap.xml
 
-ÖNEMLİ: Yüklemeden sonra F12 → Application → Clear site data → Ctrl+Shift+R
+Vercel: Framework Preset = Other, build/install/output hepsi boş.

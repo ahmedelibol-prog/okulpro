@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nöbet Çizelgesi · OkulPro</title>
+  <meta name="description" content="OkulPro Nöbet Çizelgesi — Öğretmen nöbet listelerini ders programındaki saatlere göre adil olarak otomatik oluşturun.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    ::selection { background-color: #fde68a; color: #1e293b; }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    @media print {
+      .no-print { display: none !important; }
+      body { background: white !important; }
+      .print-table { box-shadow: none !important; border: 1px solid #94a3b8 !important; }
+    }
+  </style>
+</head>
+<body class="bg-stone-50 antialiased text-slate-900">
+  <div id="root"></div>
+
+  <script type="text/babel" data-presets="react">
+const { useState, useMemo, useEffect } = React;
+
+// ─────────────────────────────────────────────────────────
+//  SABİTLER
+// ─────────────────────────────────────────────────────────
+const TR_DAYS = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+const TR_DAYS_SHORT = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
+const TR_MONTHS = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+  'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+
+const ZONE_PRESETS = [
+  { name: 'Ana Giriş', accent: '#0ea5e9' },
+  { name: 'Koridor', accent: '#10b981' },
+  { name: 'Bahçe', accent: '#f59e0b' },
+  { name: 'Yemekhane', accent: '#ec4899' },
+  { name: 'Spor Salonu', accent: '#8b5cf6' },
+  { name: 'Kütüphane', accent: '#ef4444' },
+];
+
+const TEACHER_COLORS = [
+  { bg: 'bg-sky-100', text: 'text-sky-900', border: 'border-sky-200', hex: '#0284c7' },
+  { bg: 'bg-emerald-100', text: 'text-emerald-900', border: 'border-emerald-200', hex: '#059669' },
+  { bg: 'bg-orange-100', text: 'text-orange-900', border: 'border-orange-200', hex: '#ea580c' },
+  { bg: 'bg-pink-100', text: 'text-pink-900', border: 'border-pink-200', hex: '#db2777' },
+  { bg: 'bg-amber-100', text: 'text-amber-900', border: 'border-amber-200', hex: '#d97706' },
+  { bg: 'bg-violet-100', text: 'text-violet-900', border: 'border-violet-200', hex: '#7c3aed' },
+  { bg: 'bg-rose-100', text: 'text-rose-900', border: 'border-rose-200', hex: '#e11d48' },
+  { bg: 'bg-lime-100', text: 'text-lime-900', border: 'border-lime-200', hex: '#65a30d' },
+  { bg: 'bg-indigo-100', text: 'text-indigo-900', border: 'border-indigo-200', hex: '#4f46e5' },
+  { bg: 'bg-teal-100', text: 'text-teal-900', border: 'border-teal-200', hex: '#0d9488' },
+  { bg: 'bg-fuchsia-100', text: 'text-fuchsia-900', border: 'border-fuchsia-200', hex: '#c026d3' },
+  { bg: 'bg-cyan-100', text: 'text-cyan-900', border: 'border-cyan-200', hex: '#0891b2' },
+];
+
+const KEY_VERI = 'okulpro_veri';
+const KEY_NOBET = 'okulpro_nobet';
+
+// ─────────────────────────────────────────────────────────
+//  YARDIMCILAR
+// ─────────────────────────────────────────────────────────
+function formatDateShort(d) {
+  return String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
+function getWorkingDays(start, end) {
+  const days = [];
+  const current = new Date(start);
+  while (current <= end) {
+    const dow = current.getDay();
+    if (dow !== 0 && dow !== 6) {
+      days.push({ date: new Date(current), weekday: dow, dayName: TR_DAYS[dow], iso: current.toISOString().slice(0, 10) });
+    }
+    current.setDate(current.getDate() + 1);
+  }
+  return days;
+}
+
+function hourHeat(h) {
+  if (h === 0) return { bg: 'bg-stone-100', text: 'text-stone-500', label: 'boş' };
+  if (h <= 2) return { bg: 'bg-emerald-100', text: 'text-emerald-800', label: 'rahat' };
+  if (h <= 4) return { bg: 'bg-sky-100', text: 'text-sky-800', label: 'orta' };
+  if (h <= 5) return { bg: 'bg-amber-100', text: 'text-amber-800', label: 'yoğun' };
+  return { bg: 'bg-rose-100', text: 'text-rose-800', label: 'çok yoğun' };
+}
+
+// OkulPro localStorage'dan öğretmenleri + günlük ders saatlerini çek
+function loadOkulProData() {
+  try {
+    const raw = localStorage.getItem(KEY_VERI);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data.teachers || !data.teachers.length) return null;
+
+    // Her öğretmenin günlük ders saatlerini hesapla
+    const hoursPerTeacher = {};
+    data.teachers.forEach(t => hoursPerTeacher[t.id] = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 });
+
+    // Önce gerçek sched'den oku (varsa)
+    let usedSched = false;
+    if (data.sched && Object.keys(data.sched).length > 0) {
+      const asnMap = {};
+      (data.asns || []).forEach(a => asnMap[a.id] = a);
+
+      Object.entries(data.sched).forEach(([key, asnId]) => {
+        if (!asnId) return;
+        const asn = asnMap[asnId];
+        if (!asn) return;
+        const parts = key.split('_');
+        if (parts.length < 3) return;
+        const dayIdx = parseInt(parts[1], 10); // 0-4 = Pzt-Cum
+        const weekday = dayIdx + 1;
+        if (weekday >= 1 && weekday <= 5 && hoursPerTeacher[asn.tId]) {
+          hoursPerTeacher[asn.tId][weekday]++;
+        }
+      });
+      usedSched = true;
+    } else if (data.asns && data.asns.length > 0) {
+      // Sched yoksa atamalardan toplam saatleri 5 güne eşit dağıt (tahmini)
+      const totalPerTeacher = {};
+      data.asns.forEach(a => {
+        if (!totalPerTeacher[a.tId]) totalPerTeacher[a.tId] = 0;
+        totalPerTeacher[a.tId] += (a.hw || 0);
+      });
+      Object.entries(totalPerTeacher).forEach(([tId, total]) => {
+        if (!hoursPerTeacher[tId]) return;
+        const perDay = Math.floor(total / 5);
+        const remainder = total % 5;
+        for (let d = 1; d <= 5; d++) {
+          hoursPerTeacher[tId][d] = perDay + (d <= remainder ? 1 : 0);
+        }
+      });
+    }
+
+    return {
+      teachers: data.teachers.map(t => ({
+        id: t.id,
+        name: t.name,
+        branch: t.branch,
+        excludedDays: [],
+        dailyHours: hoursPerTeacher[t.id] || { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+      })),
+      school: data.school || '',
+      usedSched
+    };
+  } catch (e) {
+    console.error('OkulPro verisi okunamadı:', e);
+    return null;
+  }
+}
+
+// Adil rotasyon algoritması (ders saatlerini de gözeten)
+function generateRota(workingDays, zones, teachers) {
+  if (!teachers.length || !workingDays.length || !zones.length) return [];
+
+  const teacherCount = {};
+  teachers.forEach(t => teacherCount[t.id] = 0);
+  const lastZoneByTeacher = {};
+  const result = [];
+
+  for (let dayIdx = 0; dayIdx < workingDays.length; dayIdx++) {
+    const day = workingDays[dayIdx];
+    const dayAssigned = new Set();
+
+    for (const zone of zones) {
+      let candidates = teachers.filter(t => {
+        if (t.excludedDays && t.excludedDays.includes(day.weekday)) return false;
+        if (dayAssigned.has(t.id)) return false;
+        return true;
+      });
+
+      if (candidates.length === 0) {
+        candidates = teachers.filter(t => !(t.excludedDays && t.excludedDays.includes(day.weekday)));
+      }
+      if (candidates.length === 0) {
+        result.push({ ...day, zoneId: zone.id, zoneName: zone.name, teacherId: null });
+        continue;
+      }
+
+      candidates.sort((a, b) => teacherCount[a.id] - teacherCount[b.id]);
+      const minCount = teacherCount[candidates[0].id];
+      const tied = candidates.filter(c => teacherCount[c.id] === minCount);
+
+      tied.sort((a, b) => {
+        const aLast = (lastZoneByTeacher[a.id] && lastZoneByTeacher[a.id][zone.id]) || -999;
+        const bLast = (lastZoneByTeacher[b.id] && lastZoneByTeacher[b.id][zone.id]) || -999;
+        if (aLast !== bLast) return aLast - bLast;
+        const aHours = (a.dailyHours && a.dailyHours[day.weekday]) || 0;
+        const bHours = (b.dailyHours && b.dailyHours[day.weekday]) || 0;
+        return aHours - bHours;
+      });
+
+      const picked = tied[Math.floor(Math.random() * Math.min(2, tied.length))];
+      result.push({ ...day, zoneId: zone.id, zoneName: zone.name, teacherId: picked.id, teacherName: picked.name });
+      teacherCount[picked.id]++;
+      dayAssigned.add(picked.id);
+      if (!lastZoneByTeacher[picked.id]) lastZoneByTeacher[picked.id] = {};
+      lastZoneByTeacher[picked.id][zone.id] = dayIdx;
+    }
+  }
+  return result;
+}
+
+// ─────────────────────────────────────────────────────────
+//  HEADER
+// ─────────────────────────────────────────────────────────
+const Logo = () => (
+  React.createElement('svg', { width: 36, height: 24, viewBox: '0 0 62 40', fill: 'none' },
+    React.createElement('circle', { cx: 22, cy: 20, r: 14, stroke: '#0f172a', strokeWidth: 3, fill: 'white' }),
+    React.createElement('circle', { cx: 40, cy: 20, r: 14, stroke: '#b45309', strokeWidth: 3, fill: 'white', fillOpacity: 0.9 }),
+    React.createElement('path', { d: 'M 34 20 L 38 24 L 46 14', stroke: '#b45309', strokeWidth: 3, fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' })
+  )
+);
+
+const Header = ({ step, onBack, school }) => (
+  <div className="bg-white border-b border-stone-200 sticky top-0 z-40 no-print" style={{ backdropFilter: 'blur(8px)' }}>
+    <div className="max-w-6xl mx-auto px-4 md:px-6 py-3 md:py-4 flex items-center gap-3 md:gap-4 flex-wrap">
+      <a href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity" title="Tanıtım sayfasına dön">
+        <Logo />
+        <div>
+          <div className="font-black tracking-tight text-base md:text-lg" style={{ letterSpacing: '-0.02em' }}>
+            <span className="text-slate-900">Okul</span><span style={{ color: '#b45309' }}>Pro</span>
+          </div>
+          {school && <div className="text-[11px] text-stone-500 leading-none mt-0.5">{school}</div>}
+        </div>
+      </a>
+
+      <div className="hidden md:block w-px h-8 bg-stone-200" />
+
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 bg-slate-900 flex items-center justify-center" style={{ borderRadius: 10 }}>
+          <span className="text-white text-sm">📋</span>
+        </div>
+        <div>
+          <div className="font-black tracking-tight text-sm">Nöbet Çizelgesi</div>
+          <div className="text-[10px] text-stone-500 leading-none">Adil rotasyon</div>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-1.5 ml-auto">
+        {[1, 2, 3].map((s, i) => (
+          <React.Fragment key={s}>
+            <div className="flex items-center gap-1 px-2.5 py-1 transition-all"
+              style={{
+                borderRadius: 999,
+                background: s === step ? '#0f172a' : s < step ? '#d1fae5' : '#f1f5f9',
+                color: s === step ? '#fff' : s < step ? '#065f46' : '#94a3b8'
+              }}>
+              {s < step ? <span className="text-[10px] font-black">✓</span> : <span className="text-[10px] font-bold">{s}</span>}
+              <span className="text-[10px] font-bold hidden sm:inline">
+                {s === 1 ? 'Tarih' : s === 2 ? 'Öğretmen' : 'Çizelge'}
+              </span>
+            </div>
+            {i < 2 && <div className="w-2 h-px bg-stone-300" />}
+          </React.Fragment>
+        ))}
+      </div>
+
+      <div className="w-full md:w-auto flex items-center gap-2 md:order-last">
+        <a href="/app" title="Uygulamaya dön"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-stone-50 border border-stone-200 hover:bg-stone-100 transition-all text-xs font-bold text-stone-700"
+          style={{ borderRadius: 10 }}>
+          ← Uygulama
+        </a>
+        {step > 1 && (
+          <button onClick={onBack} className="text-xs font-bold text-stone-600 hover:text-slate-900 transition-colors flex items-center gap-1">
+            ← Geri
+          </button>
+        )}
+      </div>
+    </div>
+  </div>
+);
+
+// ─────────────────────────────────────────────────────────
+//  ADIM 1: TARİH + BÖLGE
+// ─────────────────────────────────────────────────────────
+const Step1 = ({ startDate, setStartDate, endDate, setEndDate, zones, setZones, onContinue }) => {
+  const workingDays = useMemo(() => {
+    if (!startDate || !endDate) return [];
+    return getWorkingDays(new Date(startDate), new Date(endDate));
+  }, [startDate, endDate]);
+
+  const addZone = (preset = null) => {
+    const used = new Set(zones.map(z => z.name));
+    const available = ZONE_PRESETS.find(p => !used.has(p.name));
+    const newZone = preset || available || ZONE_PRESETS[zones.length % ZONE_PRESETS.length];
+    setZones([...zones, { ...newZone, id: 'z' + Date.now() + Math.random().toString(36).slice(2, 5) }]);
+  };
+
+  const canContinue = workingDays.length > 0 && zones.length > 0;
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-8" style={{ animation: 'fadeUp 0.5s cubic-bezier(0.2,0.65,0.3,1)' }}>
+      <div className="mb-6 md:mb-8">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 mb-4" style={{ borderRadius: 999 }}>
+          <span className="text-amber-600">✨</span>
+          <span className="text-xs font-bold text-amber-800">Adım 1 · Tarih ve Bölge</span>
+        </div>
+        <h1 className="text-2xl md:text-4xl font-black tracking-tighter mb-2">
+          Nöbet <span className="text-stone-400 font-extralight italic">dönemini</span> belirle
+        </h1>
+        <p className="text-sm text-stone-600">Hangi tarihler arasında, hangi bölgelerde nöbet tutulacak?</p>
+      </div>
+
+      <div className="bg-white border border-stone-200 p-5 mb-5" style={{ borderRadius: 16, boxShadow: '0 1px 3px rgba(15,23,42,0.04)' }}>
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-9 h-9 bg-sky-100 text-sky-900 flex items-center justify-center text-base" style={{ borderRadius: 10 }}>📅</div>
+          <div>
+            <div className="font-bold text-slate-900">Tarih Aralığı</div>
+            <div className="text-xs text-stone-500">Hafta sonları otomatik atlanır</div>
+          </div>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-3 mb-3">
+          <div>
+            <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block mb-1.5">Başlangıç</label>
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+              className="w-full bg-stone-50 border border-stone-200 px-3 py-2.5 font-bold text-slate-900 focus:border-slate-900 outline-none transition-all"
+              style={{ borderRadius: 10 }} />
+          </div>
+          <div>
+            <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block mb-1.5">Bitiş</label>
+            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
+              className="w-full bg-stone-50 border border-stone-200 px-3 py-2.5 font-bold text-slate-900 focus:border-slate-900 outline-none transition-all"
+              style={{ borderRadius: 10 }} />
+          </div>
+        </div>
+        {workingDays.length > 0 && (
+          <div className="inline-flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 text-emerald-900" style={{ borderRadius: 10 }}>
+            <span className="text-sm">✓</span>
+            <span className="text-sm font-bold">{workingDays.length} iş günü</span>
+            <span className="text-xs text-emerald-700">· hafta sonları atlandı</span>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white border border-stone-200 p-5 mb-8" style={{ borderRadius: 16, boxShadow: '0 1px 3px rgba(15,23,42,0.04)' }}>
+        <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 bg-violet-100 text-violet-900 flex items-center justify-center text-base" style={{ borderRadius: 10 }}>📍</div>
+            <div>
+              <div className="font-bold text-slate-900">Nöbet Bölgeleri</div>
+              <div className="text-xs text-stone-500">Her gün her bölgeye 1 öğretmen atanır</div>
+            </div>
+          </div>
+          <div className="text-xs font-bold text-stone-500 uppercase tracking-wider">{zones.length} bölge</div>
+        </div>
+
+        <div className="space-y-2 mb-3">
+          {zones.map(z => (
+            <div key={z.id} className="flex items-center gap-2 bg-stone-50 border border-stone-200 p-2" style={{ borderRadius: 10 }}>
+              <div className="w-1.5 self-stretch flex-shrink-0" style={{ background: z.accent, borderRadius: 2, minHeight: 32 }} />
+              <input value={z.name} onChange={e => setZones(zones.map(zz => zz.id === z.id ? { ...zz, name: e.target.value } : zz))}
+                className="flex-1 bg-transparent px-2 py-1 font-bold text-slate-900 outline-none" />
+              <button onClick={() => setZones(zones.filter(zz => zz.id !== z.id))}
+                className="w-8 h-8 flex items-center justify-center text-stone-400 hover:bg-rose-50 hover:text-rose-600 transition-all"
+                style={{ borderRadius: 8 }}>✕</button>
+            </div>
+          ))}
+        </div>
+
+        <button onClick={() => addZone()}
+          className="w-full bg-white border-2 border-dashed border-stone-300 hover:border-slate-900 text-stone-500 hover:text-slate-900 p-3 font-bold text-sm transition-all"
+          style={{ borderRadius: 10 }}>
+          + Bölge Ekle
+        </button>
+
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          <span className="text-[11px] text-stone-500 mr-1">Hızlı:</span>
+          {ZONE_PRESETS.filter(p => !zones.find(z => z.name === p.name)).map(p => (
+            <button key={p.name} onClick={() => addZone(p)}
+              className="text-[11px] font-bold text-stone-700 bg-stone-100 hover:bg-stone-200 px-2 py-0.5 transition-all"
+              style={{ borderRadius: 999 }}>
+              + {p.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex justify-end">
+        <button onClick={onContinue} disabled={!canContinue}
+          className="inline-flex items-center gap-2 bg-slate-900 text-white font-bold px-6 py-3 hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 transition-all text-sm"
+          style={{ borderRadius: 12, boxShadow: '0 8px 24px -4px rgba(15,23,42,0.3)' }}>
+          Devam: Öğretmenleri Gör →
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────
+//  ADIM 2: ÖĞRETMENLER (OkulPro'dan otomatik gelir)
+// ─────────────────────────────────────────────────────────
+const Step2 = ({ teachers, setTeachers, zones, workingDays, dataSource, onContinue }) => {
+  const toggleExcludeDay = (id, day) => {
+    setTeachers(teachers.map(t => {
+      if (t.id !== id) return t;
+      const excl = t.excludedDays || [];
+      return { ...t, excludedDays: excl.includes(day) ? excl.filter(d => d !== day) : [...excl, day] };
+    }));
+  };
+
+  const removeTeacher = (id) => setTeachers(teachers.filter(t => t.id !== id));
+
+  const totalSlots = workingDays.length * zones.length;
+  const perTeacher = teachers.length ? (totalSlots / teachers.length).toFixed(1) : 0;
+
+  // OkulPro'da hiç öğretmen yoksa uyarı göster
+  if (teachers.length === 0) {
+    return (
+      <div className="max-w-3xl mx-auto px-6 py-12 text-center" style={{ animation: 'fadeUp 0.5s' }}>
+        <div className="text-6xl mb-4">👥</div>
+        <h2 className="text-2xl font-black tracking-tighter mb-2">Önce öğretmen ekleyin</h2>
+        <p className="text-sm text-stone-600 mb-6 max-w-md mx-auto">
+          OkulPro'da henüz öğretmen bulunmuyor. Önce <strong>Bilgileri Kaydet</strong> sekmesinden
+          öğretmen ekleyin, sonra buraya gelin — nöbet listesi otomatik hazırlanacak.
+        </p>
+        <a href="/app"
+          className="inline-flex items-center gap-2 bg-slate-900 text-white font-bold px-6 py-3 hover:-translate-y-0.5 transition-all text-sm"
+          style={{ borderRadius: 12, boxShadow: '0 8px 24px -4px rgba(15,23,42,0.3)' }}>
+          OkulPro Uygulamasına Git →
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 md:px-6 py-6 md:py-8" style={{ animation: 'fadeUp 0.5s' }}>
+      <div className="mb-6">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 mb-4" style={{ borderRadius: 999 }}>
+          <span className="text-amber-600">✨</span>
+          <span className="text-xs font-bold text-amber-800">Adım 2 · Öğretmenler</span>
+        </div>
+        <h1 className="text-2xl md:text-4xl font-black tracking-tighter mb-2">
+          Öğretmenler ve <span className="text-stone-400 font-extralight italic">ders yükleri</span>
+        </h1>
+        <p className="text-sm text-stone-600">
+          {dataSource === 'sched' && '✓ Ders programındaki gerçek saatler kullanıldı'}
+          {dataSource === 'asns' && '⚠️ Ders programı henüz oluşturulmadı — atamalardan tahmini saatler'}
+          {!dataSource && 'Manuel girilen saatler'}
+        </p>
+      </div>
+
+      <div className="bg-white border border-stone-200 p-4 mb-4" style={{ borderRadius: 14, boxShadow: '0 1px 3px rgba(15,23,42,0.04)' }}>
+        <div className="flex items-center justify-around gap-2 flex-wrap">
+          <Stat label="Öğretmen" value={teachers.length} color="#0284c7" />
+          <div className="w-px h-10 bg-stone-200" />
+          <Stat label="İş Günü" value={workingDays.length} color="#059669" />
+          <div className="w-px h-10 bg-stone-200" />
+          <Stat label="Toplam Nöbet" value={totalSlots} color="#d97706" />
+          <div className="w-px h-10 bg-stone-200" />
+          <Stat label="Kişi Başı" value={'~' + perTeacher} color="#7c3aed" unit="nöbet" />
+        </div>
+      </div>
+
+      <div className="bg-white border border-stone-200 mb-6 overflow-hidden" style={{ borderRadius: 14 }}>
+        {teachers.map((t, i) => {
+          const c = TEACHER_COLORS[i % TEACHER_COLORS.length];
+          const weeklyTotal = Object.values(t.dailyHours || {}).reduce((a, b) => a + b, 0);
+          return (
+            <div key={t.id} className="flex items-start gap-3 px-4 py-3 border-b border-stone-100 last:border-b-0 hover:bg-stone-50 transition-all">
+              <div className="w-1 self-stretch mt-1" style={{ background: c.hex, borderRadius: 2, minHeight: 32 }} />
+              <div className={`w-9 h-9 ${c.bg} ${c.text} flex items-center justify-center font-black text-sm flex-shrink-0 mt-0.5`} style={{ borderRadius: 8 }}>
+                {t.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline gap-2 mb-1.5 flex-wrap">
+                  <div className="font-bold text-slate-900 text-sm">{t.name}</div>
+                  {t.branch && <div className="text-[10px] text-stone-500 font-medium">· {t.branch}</div>}
+                  <div className="text-[10px] text-stone-400 font-bold whitespace-nowrap ml-auto">
+                    Hafta: <strong className="text-slate-700">{weeklyTotal}h</strong>
+                  </div>
+                </div>
+
+                <div className="flex items-stretch gap-1 mb-1.5">
+                  {[1, 2, 3, 4, 5].map(day => {
+                    const hours = (t.dailyHours && t.dailyHours[day]) || 0;
+                    const isExcluded = t.excludedDays && t.excludedDays.includes(day);
+                    const heat = hourHeat(hours);
+                    return (
+                      <button key={day} onClick={() => toggleExcludeDay(t.id, day)}
+                        title={isExcluded ? `${TR_DAYS[day]} — Muaf · ${hours} ders saati` : `${TR_DAYS[day]} — ${hours} ders saati (${heat.label})`}
+                        className={`flex-1 px-2 py-1.5 transition-all relative ${isExcluded ? 'bg-rose-50 border-2 border-rose-300 opacity-90' : `${heat.bg} border-2 border-transparent hover:border-slate-900`}`}
+                        style={{ borderRadius: 8 }}>
+                        <div className={`text-[10px] font-bold uppercase tracking-wide ${isExcluded ? 'text-rose-600 line-through' : heat.text}`}>{TR_DAYS_SHORT[day]}</div>
+                        <div className={`text-base font-black leading-none mt-0.5 ${isExcluded ? 'text-rose-500' : heat.text}`}>
+                          {hours}<span className="text-[9px] font-bold opacity-60">h</span>
+                        </div>
+                        {isExcluded && (
+                          <div className="absolute top-0.5 right-0.5 text-[8px] font-black text-rose-600 px-1 bg-white/70" style={{ borderRadius: 4 }}>MUAF</div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="text-[10px] text-stone-400">Bir güne tıkla → nöbetten muaf yap/kaldır</div>
+              </div>
+              <button onClick={() => removeTeacher(t.id)}
+                className="w-8 h-8 flex items-center justify-center text-stone-300 hover:bg-rose-50 hover:text-rose-600 transition-all flex-shrink-0 mt-0.5"
+                style={{ borderRadius: 8 }}>✕</button>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="flex justify-end">
+        <button onClick={onContinue} disabled={teachers.length < zones.length}
+          className="inline-flex items-center gap-2 bg-slate-900 text-white font-bold px-6 py-3 hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 transition-all text-sm"
+          style={{ borderRadius: 12, boxShadow: '0 8px 24px -4px rgba(15,23,42,0.3)' }}>
+          {teachers.length < zones.length
+            ? `En az ${zones.length} öğretmen gerekli`
+            : '🔀 Çizelgeyi Oluştur'}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const Stat = ({ label, value, color, unit }) => (
+  <div className="text-center">
+    <div className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-0.5">{label}</div>
+    <div className="text-2xl font-black" style={{ color }}>
+      {value} {unit && <span className="text-xs font-bold text-stone-400 ml-1">{unit}</span>}
+    </div>
+  </div>
+);
+
+// ─────────────────────────────────────────────────────────
+//  ADIM 3: ÇİZELGE
+// ─────────────────────────────────────────────────────────
+const Step3 = ({ workingDays, zones, teachers, schedule, setSchedule, onRestart, school }) => {
+  const [view, setView] = useState('table');
+
+  const teacherStats = useMemo(() => {
+    const counts = {};
+    teachers.forEach(t => counts[t.id] = 0);
+    schedule.forEach(s => { if (s.teacherId) counts[s.teacherId]++; });
+    return counts;
+  }, [schedule, teachers]);
+
+  const teacherById = useMemo(() => {
+    const map = {};
+    teachers.forEach((t, i) => { map[t.id] = { ...t, color: TEACHER_COLORS[i % TEACHER_COLORS.length] }; });
+    return map;
+  }, [teachers]);
+
+  const regenerate = () => {
+    const result = generateRota(workingDays, zones, teachers);
+    setSchedule(result);
+    // localStorage'a kaydet
+    try {
+      localStorage.setItem(KEY_NOBET, JSON.stringify({
+        workingDays: workingDays.map(d => d.iso),
+        zones, teachers, schedule: result, savedAt: Date.now()
+      }));
+    } catch (e) {}
+  };
+
+  const dayGrid = useMemo(() => {
+    const grid = {};
+    schedule.forEach(s => {
+      if (!grid[s.iso]) grid[s.iso] = { day: s, zones: {} };
+      grid[s.iso].zones[s.zoneId] = s;
+    });
+    return Object.values(grid);
+  }, [schedule]);
+
+  const teacherSchedules = useMemo(() => {
+    const list = {};
+    teachers.forEach(t => list[t.id] = []);
+    schedule.forEach(s => { if (s.teacherId && list[s.teacherId]) list[s.teacherId].push(s); });
+    return list;
+  }, [schedule, teachers]);
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8" style={{ animation: 'fadeUp 0.5s' }}>
+      <div className="mb-6 flex items-start justify-between flex-wrap gap-4 no-print">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 mb-3" style={{ borderRadius: 999 }}>
+            <span className="text-emerald-700 font-black text-xs">✓</span>
+            <span className="text-xs font-bold text-emerald-800">Adım 3 · Çizelge Hazır</span>
+          </div>
+          <h1 className="text-2xl md:text-4xl font-black tracking-tighter mb-1">
+            Nöbet <span className="text-stone-400 font-extralight italic">çizelgesi</span>
+          </h1>
+          <p className="text-sm text-stone-600">
+            <strong>{workingDays.length}</strong> iş günü · <strong>{zones.length}</strong> bölge · <strong>{teachers.length}</strong> öğretmen · <strong>{schedule.length}</strong> atama
+          </p>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={regenerate}
+            className="bg-white border border-stone-200 text-slate-900 font-bold px-4 py-2.5 hover:-translate-y-0.5 transition-all text-sm"
+            style={{ borderRadius: 12 }}>🔀 Yeniden Üret</button>
+          <button onClick={() => window.print()}
+            className="bg-slate-900 text-white font-bold px-4 py-2.5 hover:-translate-y-0.5 transition-all text-sm"
+            style={{ borderRadius: 12, boxShadow: '0 8px 24px -4px rgba(15,23,42,0.3)' }}>🖨️ Yazdır</button>
+        </div>
+      </div>
+
+      {school && (
+        <div className="hidden print:block mb-4 text-center">
+          <h2 className="text-xl font-black tracking-tight">{school}</h2>
+          <p className="text-sm text-slate-600">Nöbet Çizelgesi</p>
+        </div>
+      )}
+
+      <div className="inline-flex p-1 bg-stone-100 mb-5 no-print" style={{ borderRadius: 12 }}>
+        <button onClick={() => setView('table')}
+          className={`px-4 py-1.5 text-sm font-bold transition-all ${view === 'table' ? 'bg-white text-slate-900 shadow-sm' : 'text-stone-600 hover:text-slate-900'}`}
+          style={{ borderRadius: 8 }}>Çarşaf Liste</button>
+        <button onClick={() => setView('teacher')}
+          className={`px-4 py-1.5 text-sm font-bold transition-all ${view === 'teacher' ? 'bg-white text-slate-900 shadow-sm' : 'text-stone-600 hover:text-slate-900'}`}
+          style={{ borderRadius: 8 }}>Öğretmen Bazlı</button>
+      </div>
+
+      {view === 'table' && (
+        <div className="bg-white border border-stone-200 overflow-hidden mb-6 print-table" style={{ borderRadius: 16 }}>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-slate-900 text-white">
+                  <th className="px-3 py-3 text-left text-xs font-black uppercase tracking-wider sticky left-0 bg-slate-900">Tarih</th>
+                  <th className="px-3 py-3 text-left text-xs font-black uppercase tracking-wider">Gün</th>
+                  {zones.map(z => (
+                    <th key={z.id} className="px-3 py-3 text-left text-xs font-black uppercase tracking-wider">{z.name}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {dayGrid.map((row, i) => (
+                  <tr key={row.day.iso} className={`border-t border-stone-100 hover:bg-stone-50 transition-all ${i % 2 === 1 ? 'bg-stone-50/40' : ''}`}>
+                    <td className="px-3 py-2.5 font-black text-slate-900 sticky left-0 whitespace-nowrap" style={{ background: i % 2 === 1 ? '#fafaf9' : '#fff' }}>
+                      {formatDateShort(row.day.date)}
+                    </td>
+                    <td className="px-3 py-2.5 text-stone-600 font-medium">{row.day.dayName}</td>
+                    {zones.map(z => {
+                      const slot = row.zones[z.id];
+                      if (!slot || !slot.teacherId) return <td key={z.id} className="px-3 py-2.5 text-stone-300 text-xs">—</td>;
+                      const t = teacherById[slot.teacherId];
+                      const dayHours = (t.dailyHours && t.dailyHours[row.day.weekday]) || 0;
+                      const heat = hourHeat(dayHours);
+                      return (
+                        <td key={z.id} className="px-2 py-2">
+                          <div className={`inline-flex items-center gap-1.5 px-2 py-1 ${t.color.bg} ${t.color.text}`} style={{ borderRadius: 8 }}>
+                            <div className="w-1 h-3" style={{ background: t.color.hex, borderRadius: 1 }} />
+                            <span className="font-bold text-xs">{t.name}</span>
+                            <span className={`text-[9px] font-black px-1 ${heat.bg} ${heat.text}`} style={{ borderRadius: 4 }} title={`${dayHours} ders saati (${heat.label})`}>{dayHours}h</span>
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {view === 'teacher' && (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+          {teachers.map((t, i) => {
+            const c = TEACHER_COLORS[i % TEACHER_COLORS.length];
+            const dates = teacherSchedules[t.id] || [];
+            return (
+              <div key={t.id} className="bg-white border border-stone-200 overflow-hidden" style={{ borderRadius: 14 }}>
+                <div className={`${c.bg} ${c.text} px-4 py-3 border-b ${c.border} flex items-center gap-2.5`}>
+                  <div className={`w-8 h-8 bg-white ${c.text} flex items-center justify-center font-black text-xs flex-shrink-0`} style={{ borderRadius: 8 }}>
+                    {t.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="font-black text-sm">{t.name}</div>
+                    <div className="text-[11px] opacity-75">{dates.length} nöbet</div>
+                  </div>
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                  {dates.map((d, idx) => (
+                    <div key={idx} className="flex items-center gap-2 px-4 py-2 text-xs border-b border-stone-100 last:border-b-0">
+                      <span className="font-black text-slate-900 w-12">{formatDateShort(d.date)}</span>
+                      <span className="text-stone-500 w-16">{d.dayName.slice(0, 3)}</span>
+                      <span className="font-bold text-stone-700">{d.zoneName}</span>
+                    </div>
+                  ))}
+                  {dates.length === 0 && <div className="px-4 py-8 text-center text-xs text-stone-400">Henüz atanmadı</div>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="bg-white border border-stone-200 p-5 mb-4 no-print" style={{ borderRadius: 16 }}>
+        <div className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-3">ADİLLİK DAĞILIMI</div>
+        <div className="grid sm:grid-cols-3 lg:grid-cols-4 gap-2">
+          {teachers.map((t, i) => {
+            const c = TEACHER_COLORS[i % TEACHER_COLORS.length];
+            const count = teacherStats[t.id] || 0;
+            return (
+              <div key={t.id} className="flex items-center gap-2">
+                <div className="w-1 self-stretch" style={{ background: c.hex, borderRadius: 1, minHeight: 24 }} />
+                <span className="text-sm font-bold flex-1 truncate" title={t.name}>{t.name}</span>
+                <span className={`text-xs font-black px-2 py-1 ${c.bg} ${c.text}`} style={{ borderRadius: 6 }}>{count}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="text-center no-print">
+        <button onClick={onRestart} className="text-sm text-stone-500 hover:text-slate-900 font-bold transition-colors">
+          ← Baştan başla
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────
+//  ANA UYGULAMA
+// ─────────────────────────────────────────────────────────
+function App() {
+  const today = new Date();
+  const twoMonthsLater = new Date(today);
+  twoMonthsLater.setMonth(twoMonthsLater.getMonth() + 2);
+
+  const [step, setStep] = useState(1);
+  const [startDate, setStartDate] = useState(today.toISOString().slice(0, 10));
+  const [endDate, setEndDate] = useState(twoMonthsLater.toISOString().slice(0, 10));
+  const [zones, setZones] = useState([
+    { id: 'z1', name: 'Ana Giriş', accent: '#0ea5e9' },
+    { id: 'z2', name: 'Koridor', accent: '#10b981' },
+    { id: 'z3', name: 'Bahçe', accent: '#f59e0b' },
+    { id: 'z4', name: 'Yemekhane', accent: '#ec4899' },
+  ]);
+  const [teachers, setTeachers] = useState([]);
+  const [schedule, setSchedule] = useState([]);
+  const [school, setSchool] = useState('');
+  const [dataSource, setDataSource] = useState(null);
+
+  // İlk yüklemede OkulPro'dan oku
+  useEffect(() => {
+    const data = loadOkulProData();
+    if (data) {
+      setTeachers(data.teachers);
+      setSchool(data.school);
+      setDataSource(data.usedSched ? 'sched' : 'asns');
+    }
+    // Önceden kaydedilmiş nöbeti yükle
+    try {
+      const raw = localStorage.getItem(KEY_NOBET);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved.schedule) {
+          // Sadece bilgi için, kullanıcı tekrar Step3'e gitmek isterse
+          console.log('[Nöbet] Önceki çizelge yüklendi:', saved.schedule.length, 'atama');
+        }
+      }
+    } catch(e) {}
+  }, []);
+
+  const workingDays = useMemo(() => {
+    if (!startDate || !endDate) return [];
+    return getWorkingDays(new Date(startDate), new Date(endDate));
+  }, [startDate, endDate]);
+
+  const goToStep2 = () => setStep(2);
+  const goToStep3 = () => {
+    const result = generateRota(workingDays, zones, teachers);
+    setSchedule(result);
+    try {
+      localStorage.setItem(KEY_NOBET, JSON.stringify({
+        workingDays: workingDays.map(d => d.iso),
+        zones, teachers, schedule: result, savedAt: Date.now()
+      }));
+    } catch(e) {}
+    setStep(3);
+  };
+
+  const restart = () => { setStep(1); setSchedule([]); };
+  const goBack = () => { if (step === 3) setStep(2); else if (step === 2) setStep(1); };
+
+  return (
+    <div className="min-h-screen">
+      <Header step={step} onBack={goBack} school={school} />
+      {step === 1 && <Step1 startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} zones={zones} setZones={setZones} onContinue={goToStep2} />}
+      {step === 2 && <Step2 teachers={teachers} setTeachers={setTeachers} zones={zones} workingDays={workingDays} dataSource={dataSource} onContinue={goToStep3} />}
+      {step === 3 && <Step3 workingDays={workingDays} zones={zones} teachers={teachers} schedule={schedule} setSchedule={setSchedule} onRestart={restart} school={school} />}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+  </script>
+</body>
+</html>
