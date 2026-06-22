@@ -605,10 +605,21 @@ const Step3 = ({ workingDays, zones, teachers, schedule, setSchedule, onRestart,
     return map;
   }, [teachers]);
 
+  // Tarih aralığındaki aylar (ör. "Nisan - Haziran 2026")
+  const monthRange = useMemo(() => {
+    if (!workingDays.length) return '';
+    const first = workingDays[0].date;
+    const last = workingDays[workingDays.length - 1].date;
+    const fM = first.getMonth(), fY = first.getFullYear();
+    const lM = last.getMonth(), lY = last.getFullYear();
+    if (fY === lY && fM === lM) return TR_MONTHS[fM] + ' ' + fY;
+    if (fY === lY) return TR_MONTHS[fM] + ' – ' + TR_MONTHS[lM] + ' ' + fY;
+    return TR_MONTHS[fM] + ' ' + fY + ' – ' + TR_MONTHS[lM] + ' ' + lY;
+  }, [workingDays]);
+
   const regenerate = () => {
     const result = generateRota(workingDays, zones, teachers);
     setSchedule(result);
-    // localStorage'a kaydet
     try {
       localStorage.setItem(KEY_NOBET, JSON.stringify({
         workingDays: workingDays.map(d => d.iso),
@@ -617,13 +628,21 @@ const Step3 = ({ workingDays, zones, teachers, schedule, setSchedule, onRestart,
     } catch (e) {}
   };
 
+  // Çizelgeyi günlere göre gruplandır + her güne metadata ekle (yeni ay, son iş günü, vb.)
   const dayGrid = useMemo(() => {
     const grid = {};
     schedule.forEach(s => {
       if (!grid[s.iso]) grid[s.iso] = { day: s, zones: {} };
       grid[s.iso].zones[s.zoneId] = s;
     });
-    return Object.values(grid);
+    const rows = Object.values(grid);
+    // Her satıra "yeni ay" ve "haftanın son günü" işareti ekle
+    rows.forEach((row, i) => {
+      const prev = i > 0 ? rows[i - 1] : null;
+      row.isNewMonth = !prev || row.day.date.getMonth() !== prev.day.date.getMonth();
+      row.isWeekEnd = row.day.weekday === 5; // Cuma
+    });
+    return rows;
   }, [schedule]);
 
   const teacherSchedules = useMemo(() => {
@@ -642,7 +661,7 @@ const Step3 = ({ workingDays, zones, teachers, schedule, setSchedule, onRestart,
             <span className="text-xs font-bold text-emerald-800">Adım 3 · Çizelge Hazır</span>
           </div>
           <h1 className="text-2xl md:text-4xl font-black tracking-tighter mb-1">
-            Nöbet <span className="text-stone-400 font-extralight italic">çizelgesi</span>
+            {monthRange} <span className="text-stone-400 font-extralight italic">Nöbet</span> Çizelgesi
           </h1>
           <p className="text-sm text-stone-600">
             <strong>{workingDays.length}</strong> iş günü · <strong>{zones.length}</strong> bölge · <strong>{teachers.length}</strong> öğretmen · <strong>{schedule.length}</strong> atama
@@ -658,12 +677,10 @@ const Step3 = ({ workingDays, zones, teachers, schedule, setSchedule, onRestart,
         </div>
       </div>
 
-      {school && (
-        <div className="hidden print:block mb-4 text-center">
-          <h2 className="text-xl font-black tracking-tight">{school}</h2>
-          <p className="text-sm text-slate-600">Nöbet Çizelgesi</p>
-        </div>
-      )}
+      <div className="hidden print:block mb-4 text-center">
+        {school && <h2 className="text-xl font-black tracking-tight">{school}</h2>}
+        <p className="text-base font-bold text-slate-700 mt-1">{monthRange} Nöbet Çizelgesi</p>
+      </div>
 
       <div className="inline-flex p-1 bg-stone-100 mb-5 no-print" style={{ borderRadius: 12 }}>
         <button onClick={() => setView('table')}
@@ -688,30 +705,59 @@ const Step3 = ({ workingDays, zones, teachers, schedule, setSchedule, onRestart,
                 </tr>
               </thead>
               <tbody>
-                {dayGrid.map((row, i) => (
-                  <tr key={row.day.iso} className={`border-t border-stone-100 hover:bg-stone-50 transition-all ${i % 2 === 1 ? 'bg-stone-50/40' : ''}`}>
-                    <td className="px-3 py-2.5 font-black text-slate-900 sticky left-0 whitespace-nowrap" style={{ background: i % 2 === 1 ? '#fafaf9' : '#fff' }}>
-                      {formatDateShort(row.day.date)}
-                    </td>
-                    <td className="px-3 py-2.5 text-stone-600 font-medium">{row.day.dayName}</td>
-                    {zones.map(z => {
-                      const slot = row.zones[z.id];
-                      if (!slot || !slot.teacherId) return <td key={z.id} className="px-3 py-2.5 text-stone-300 text-xs">—</td>;
-                      const t = teacherById[slot.teacherId];
-                      const dayHours = (t.dailyHours && t.dailyHours[row.day.weekday]) || 0;
-                      const heat = hourHeat(dayHours);
-                      return (
-                        <td key={z.id} className="px-2 py-2">
-                          <div className={`inline-flex items-center gap-1.5 px-2 py-1 ${t.color.bg} ${t.color.text}`} style={{ borderRadius: 8 }}>
-                            <div className="w-1 h-3" style={{ background: t.color.hex, borderRadius: 1 }} />
-                            <span className="font-bold text-xs">{t.name}</span>
-                            <span className={`text-[9px] font-black px-1 ${heat.bg} ${heat.text}`} style={{ borderRadius: 4 }} title={`${dayHours} ders saati (${heat.label})`}>{dayHours}h</span>
-                          </div>
+                {dayGrid.map((row, i) => {
+                  const monthName = TR_MONTHS[row.day.date.getMonth()] + ' ' + row.day.date.getFullYear();
+                  return (
+                    <React.Fragment key={row.day.iso}>
+                      {row.isNewMonth && (
+                        <tr>
+                          <td colSpan={2 + zones.length}
+                            className="px-4 py-3 border-t-2 border-slate-900"
+                            style={{
+                              background: 'linear-gradient(90deg, #fef3c7 0%, #fde68a 100%)',
+                              borderBottom: '1px solid #fbbf24'
+                            }}>
+                            <div className="flex items-center gap-2">
+                              <span className="text-base">📅</span>
+                              <span className="font-black text-base text-amber-900 tracking-tight">
+                                {monthName}
+                              </span>
+                              <span className="text-xs text-amber-700 font-bold ml-2">
+                                · {TR_MONTHS[row.day.date.getMonth()].toUpperCase()} AYI NÖBETLERİ
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                      <tr className={`border-t border-stone-100 hover:bg-stone-50 transition-all ${i % 2 === 1 ? 'bg-stone-50/40' : ''} ${row.isWeekEnd ? 'border-b-2' : ''}`}
+                        style={row.isWeekEnd ? { borderBottomColor: '#cbd5e1' } : {}}>
+                        <td className="px-3 py-2.5 font-black text-slate-900 sticky left-0 whitespace-nowrap" style={{ background: i % 2 === 1 ? '#fafaf9' : '#fff' }}>
+                          {formatDateShort(row.day.date)}
                         </td>
-                      );
-                    })}
-                  </tr>
-                ))}
+                        <td className={`px-3 py-2.5 font-medium ${row.isWeekEnd ? 'text-slate-900 font-bold' : 'text-stone-600'}`}>
+                          {row.day.dayName}
+                          {row.isWeekEnd && <span className="ml-1.5 text-[9px] text-slate-400 font-bold">↓ HAFTASONU</span>}
+                        </td>
+                        {zones.map(z => {
+                          const slot = row.zones[z.id];
+                          if (!slot || !slot.teacherId) return <td key={z.id} className="px-3 py-2.5 text-stone-300 text-xs">—</td>;
+                          const t = teacherById[slot.teacherId];
+                          const dayHours = (t.dailyHours && t.dailyHours[row.day.weekday]) || 0;
+                          const heat = hourHeat(dayHours);
+                          return (
+                            <td key={z.id} className="px-2 py-2">
+                              <div className={`inline-flex items-center gap-1.5 px-2 py-1 ${t.color.bg} ${t.color.text}`} style={{ borderRadius: 8 }}>
+                                <div className="w-1 h-3" style={{ background: t.color.hex, borderRadius: 1 }} />
+                                <span className="font-bold text-xs">{t.name}</span>
+                                <span className={`text-[9px] font-black px-1 ${heat.bg} ${heat.text}`} style={{ borderRadius: 4 }} title={`${dayHours} ders saati (${heat.label})`}>{dayHours}h</span>
+                              </div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    </React.Fragment>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -735,13 +781,25 @@ const Step3 = ({ workingDays, zones, teachers, schedule, setSchedule, onRestart,
                   </div>
                 </div>
                 <div className="max-h-64 overflow-y-auto">
-                  {dates.map((d, idx) => (
-                    <div key={idx} className="flex items-center gap-2 px-4 py-2 text-xs border-b border-stone-100 last:border-b-0">
-                      <span className="font-black text-slate-900 w-12">{formatDateShort(d.date)}</span>
-                      <span className="text-stone-500 w-16">{d.dayName.slice(0, 3)}</span>
-                      <span className="font-bold text-stone-700">{d.zoneName}</span>
-                    </div>
-                  ))}
+                  {dates.map((d, idx) => {
+                    const prevDate = idx > 0 ? dates[idx - 1].date : null;
+                    const isNewMonth = !prevDate || new Date(d.date).getMonth() !== new Date(prevDate).getMonth();
+                    return (
+                      <React.Fragment key={idx}>
+                        {isNewMonth && (
+                          <div className="px-4 py-1.5 text-[10px] font-black text-amber-800 uppercase tracking-wider"
+                            style={{ background: 'linear-gradient(90deg, #fef3c7, #fde68a)' }}>
+                            {TR_MONTHS[new Date(d.date).getMonth()]} {new Date(d.date).getFullYear()}
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 px-4 py-2 text-xs border-b border-stone-100 last:border-b-0">
+                          <span className="font-black text-slate-900 w-12">{formatDateShort(new Date(d.date))}</span>
+                          <span className="text-stone-500 w-16">{d.dayName.slice(0, 3)}</span>
+                          <span className="font-bold text-stone-700">{d.zoneName}</span>
+                        </div>
+                      </React.Fragment>
+                    );
+                  })}
                   {dates.length === 0 && <div className="px-4 py-8 text-center text-xs text-stone-400">Henüz atanmadı</div>}
                 </div>
               </div>

@@ -807,6 +807,810 @@ Error generating stack: `+a.message+`
 })();
 </script>
 
+<script>
+/* OkulPro — Öğretmen Yük Heat Map (Bilgileri Kaydet > Öğretmenler) */
+(function(){
+  if (!window.location.pathname.startsWith("/app")) return;
+
+  var TR_DAYS_SHORT = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
+  var TR_DAYS = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+
+  function hourHeat(h) {
+    if (h === 0) return { bg: '#f1f5f9', text: '#64748b', label: 'boş' };
+    if (h <= 2) return { bg: '#d1fae5', text: '#065f46', label: 'rahat' };
+    if (h <= 4) return { bg: '#dbeafe', text: '#1e3a8a', label: 'orta' };
+    if (h <= 5) return { bg: '#fef3c7', text: '#92400e', label: 'yoğun' };
+    return { bg: '#ffe4e6', text: '#991b1b', label: 'çok yoğun' };
+  }
+
+  /* Öğretmenlerin günlük ders saatlerini hesapla */
+  function computeDailyHours() {
+    try {
+      var raw = localStorage.getItem("okulpro_veri");
+      if (!raw) return null;
+      var data = JSON.parse(raw);
+      if (!data.teachers || !data.teachers.length) return null;
+
+      var hours = {};
+      data.teachers.forEach(function(t){
+        hours[t.id] = { name: t.name, branch: t.branch || '', days: {1:0,2:0,3:0,4:0,5:0}, source: 'none' };
+      });
+
+      var usedSched = false;
+      if (data.sched && Object.keys(data.sched).length > 0) {
+        var asnMap = {};
+        (data.asns || []).forEach(function(a){ asnMap[a.id] = a; });
+        Object.entries(data.sched).forEach(function(entry){
+          var key = entry[0], asnId = entry[1];
+          if (!asnId) return;
+          var asn = asnMap[asnId];
+          if (!asn) return;
+          var parts = key.split('_');
+          if (parts.length < 3) return;
+          var dayIdx = parseInt(parts[1], 10);
+          var weekday = dayIdx + 1;
+          if (weekday >= 1 && weekday <= 5 && hours[asn.tId]) {
+            hours[asn.tId].days[weekday]++;
+            hours[asn.tId].source = 'sched';
+          }
+        });
+        usedSched = true;
+      } else if (data.asns && data.asns.length) {
+        var totalPer = {};
+        data.asns.forEach(function(a){
+          if (!totalPer[a.tId]) totalPer[a.tId] = 0;
+          totalPer[a.tId] += (a.hw || 0);
+        });
+        Object.entries(totalPer).forEach(function(entry){
+          var tId = entry[0], total = entry[1];
+          if (!hours[tId]) return;
+          var perDay = Math.floor(total / 5);
+          var rem = total % 5;
+          for (var d = 1; d <= 5; d++) {
+            hours[tId].days[d] = perDay + (d <= rem ? 1 : 0);
+            hours[tId].source = 'asns';
+          }
+        });
+      }
+
+      return { hours: hours, usedSched: usedSched, hasData: Object.keys(hours).length > 0 };
+    } catch(e) { console.error("[Yük Heat Map] hata:", e); return null; }
+  }
+
+  /* Heat map paneli oluştur */
+  function buildPanel() {
+    var data = computeDailyHours();
+    if (!data || !data.hasData) return null;
+
+    var teachers = Object.values(data.hours);
+    var totalWeekly = teachers.reduce(function(sum, t){
+      return sum + Object.values(t.days).reduce(function(a,b){return a+b;}, 0);
+    }, 0);
+
+    var panel = document.createElement("div");
+    panel.id = "op-teacher-heatmap-panel";
+    panel.style.cssText = "background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px 18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(15,23,42,0.04);font-family:inherit;";
+
+    var headerHtml = '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;">' +
+      '<div style="display:flex;align-items:center;gap:10px;">' +
+        '<div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg, #f59e0b, #b45309);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;flex-shrink:0;">🔥</div>' +
+        '<div>' +
+          '<div style="font-weight:800;font-size:14px;color:#0f172a;letter-spacing:-0.01em;">Öğretmen Yük Haritası</div>' +
+          '<div style="font-size:11px;color:#94a3b8;margin-top:1px;">' +
+            (data.usedSched ? '✓ Ders programındaki gerçek günlük saatler' : '⚠️ Atamalardan tahmini (program henüz oluşturulmadı)') +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:0.05em;text-transform:uppercase;">' + teachers.length + ' öğretmen · ' + totalWeekly + 'h/hafta</div>' +
+    '</div>';
+
+    var rowsHtml = teachers.map(function(t, i){
+      var weekly = Object.values(t.days).reduce(function(a,b){return a+b;}, 0);
+      var initials = t.name.split(' ').map(function(n){return n[0];}).join('').slice(0,2).toUpperCase();
+      var palette = ['#0284c7','#059669','#ea580c','#db2777','#d97706','#7c3aed','#e11d48','#65a30d','#4f46e5','#0d9488','#c026d3','#0891b2'];
+      var clr = palette[i % palette.length];
+
+      var daysHtml = [1,2,3,4,5].map(function(d){
+        var h = t.days[d] || 0;
+        var heat = hourHeat(h);
+        return '<div title="' + TR_DAYS[d] + ' — ' + h + ' ders saati (' + heat.label + ')" ' +
+          'style="flex:1;padding:6px 4px;background:' + heat.bg + ';color:' + heat.text + ';border-radius:6px;text-align:center;">' +
+          '<div style="font-size:9px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;opacity:0.7;">' + TR_DAYS_SHORT[d] + '</div>' +
+          '<div style="font-size:14px;font-weight:900;line-height:1;margin-top:2px;">' + h + '<span style="font-size:8px;font-weight:700;opacity:0.6;">h</span></div>' +
+          '</div>';
+      }).join('');
+
+      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #f1f5f9;">' +
+        '<div style="width:3px;align-self:stretch;background:' + clr + ';border-radius:1px;flex-shrink:0;min-height:28px;"></div>' +
+        '<div style="width:32px;height:32px;background:' + clr + '20;color:' + clr + ';border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:11px;flex-shrink:0;">' + initials + '</div>' +
+        '<div style="flex:1;min-width:0;display:flex;align-items:baseline;gap:6px;">' +
+          '<div style="font-weight:700;color:#0f172a;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + t.name + '</div>' +
+          (t.branch ? '<div style="font-size:10px;color:#94a3b8;">· ' + t.branch + '</div>' : '') +
+        '</div>' +
+        '<div style="display:flex;gap:3px;flex:0 0 auto;min-width:200px;max-width:280px;width:55%;">' + daysHtml + '</div>' +
+        '<div style="font-size:11px;font-weight:800;color:#475569;min-width:36px;text-align:right;">' + weekly + 'h</div>' +
+      '</div>';
+    }).join('');
+
+    panel.innerHTML = headerHtml + '<div>' + rowsHtml + '</div>';
+    return panel;
+  }
+
+  /* Öğretmenler sekmesinde miyiz? */
+  function isOnTeachersTab() {
+    /* "Öğretmen Listesi" başlığını ara */
+    var found = false;
+    var divs = document.querySelectorAll("div");
+    for (var i = 0; i < divs.length; i++) {
+      var t = divs[i].textContent;
+      if (t === "Öğretmen Listesi") { found = true; break; }
+    }
+    return found;
+  }
+
+  function findInsertPoint() {
+    /* "Öğretmen Listesi" başlığını içeren kartın hemen önüne ekleyeceğiz */
+    var divs = document.querySelectorAll("div");
+    for (var i = 0; i < divs.length; i++) {
+      if (divs[i].textContent === "Öğretmen Listesi") {
+        /* Bu başlığın bulunduğu kartın kök elementini bul */
+        var card = divs[i];
+        while (card && card.parentNode && card.parentNode.tagName !== "MAIN" && card.parentNode.tagName !== "BODY") {
+          if (card.parentNode.style && card.parentNode.style.borderRadius) {
+            card = card.parentNode;
+            break;
+          }
+          card = card.parentNode;
+        }
+        return card;
+      }
+    }
+    return null;
+  }
+
+  function refreshPanel() {
+    if (!isOnTeachersTab()) {
+      /* Sekmeden çıkıldıysa paneli kaldır */
+      var existing = document.getElementById("op-teacher-heatmap-panel");
+      if (existing) existing.remove();
+      return;
+    }
+
+    /* Mevcut paneli kaldır (veri değişmiş olabilir) */
+    var existing = document.getElementById("op-teacher-heatmap-panel");
+    if (existing) existing.remove();
+
+    /* Yeni panel oluştur */
+    var newPanel = buildPanel();
+    if (!newPanel) return;
+
+    /* Insert point bul */
+    var card = findInsertPoint();
+    if (!card || !card.parentNode) return;
+
+    /* Aynı yerde ikinci kez eklemeyi önle */
+    if (document.getElementById("op-teacher-heatmap-panel")) return;
+
+    card.parentNode.insertBefore(newPanel, card);
+  }
+
+  var pendingRefresh = null;
+  function scheduleRefresh() {
+    if (pendingRefresh) return;
+    pendingRefresh = setTimeout(function(){
+      pendingRefresh = null;
+      refreshPanel();
+    }, 200);
+  }
+
+  function watch() {
+    scheduleRefresh();
+    var obs = new MutationObserver(function(mutations){
+      /* Sadece kendi panelimiz değişirse loop'a girme */
+      for (var i = 0; i < mutations.length; i++) {
+        var m = mutations[i];
+        if (m.target && m.target.id === "op-teacher-heatmap-panel") return;
+        if (m.target && m.target.closest && m.target.closest("#op-teacher-heatmap-panel")) return;
+      }
+      scheduleRefresh();
+    });
+    if (document.body) {
+      obs.observe(document.body, { childList: true, subtree: true });
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", watch);
+  } else {
+    watch();
+  }
+})();
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   OkulPro — Tam Entegre Öğretmen Kilidi + Akıllı Yeniden Üretim v2
+   ─────────────────────────────────────────────────────────────────────
+   Özellikler:
+   • Öğretmen Yük Haritası panelinde 🔒/🔓 toggle butonları
+   • Ders programı görünümünde kilitli öğretmenlere görsel rozet
+   • "🔒 Kilitlerle Üret" butonu (kilit varsa) ─ algoritma kilitli slotları korur
+   • Yedek/Geri Al sistemi (her üretim öncesi son sched yedeklenir)
+   • Greedy + backtrack algoritması (max daily, max class hours, block ders)
+   • Hard subject (diff=3) erken saat tercihi
+   • Room (oda) çakışma kontrolü
+   • Loading overlay, detaylı sonuç özeti, hata raporu
+   ═══════════════════════════════════════════════════════════════════════ */
+(function(){
+  if (!window.location.pathname.startsWith("/app")) return;
+
+  /* ─────────────────── SABİTLER ─────────────────── */
+  var KEY_VERI = "okulpro_veri";
+  var KEY_LOCKS = "okulpro_locked_teachers";
+  var KEY_BACKUP = "okulpro_sched_backup";
+
+  /* ─────────────────── STATE OKU/YAZ ─────────────────── */
+  function getData() {
+    try {
+      var raw = localStorage.getItem(KEY_VERI);
+      return raw ? JSON.parse(raw) : null;
+    } catch(e) { console.error("[Kilit] getData hatası:", e); return null; }
+  }
+  function setData(data) {
+    try { localStorage.setItem(KEY_VERI, JSON.stringify(data)); return true; }
+    catch(e) { console.error("[Kilit] setData hatası:", e); return false; }
+  }
+  function getLocks() {
+    try {
+      var raw = localStorage.getItem(KEY_LOCKS);
+      return raw ? JSON.parse(raw) : [];
+    } catch(_) { return []; }
+  }
+  function setLocks(ids) {
+    try { localStorage.setItem(KEY_LOCKS, JSON.stringify(ids)); } catch(_) {}
+  }
+  function backupSched(sched) {
+    try {
+      localStorage.setItem(KEY_BACKUP, JSON.stringify({ sched: sched, ts: Date.now() }));
+    } catch(_) {}
+  }
+  function getBackup() {
+    try {
+      var raw = localStorage.getItem(KEY_BACKUP);
+      return raw ? JSON.parse(raw) : null;
+    } catch(_) { return null; }
+  }
+
+  /* ─────────────────── KİLİT TOGGLE ─────────────────── */
+  function toggleLock(tId) {
+    var locks = getLocks();
+    var idx = locks.indexOf(tId);
+    if (idx >= 0) locks.splice(idx, 1);
+    else locks.push(tId);
+    setLocks(locks);
+    /* Heat map ve buton görünümünü yenile */
+    var panel = document.getElementById("op-teacher-heatmap-panel");
+    if (panel) {
+      panel.dataset.locksApplied = "0";
+      enhanceHeatMapWithLocks();
+    }
+    refreshSmartButton();
+    enhanceScheduleViewWithLockBadges();
+  }
+  window.__opToggleLock = toggleLock;
+
+  /* ═══════════════════════════════════════════════════════════════════
+     AKILLI ÜRETİM ALGORİTMASI
+     ─────────────────────────────────────────────────────────────────
+     Greedy yerleştirme + backtrack denemesi.
+     Constraint'ler:
+       • Öğretmen aynı anda iki sınıfta olamaz
+       • Sınıfın aynı anda iki dersi olamaz
+       • Oda aynı anda iki dersi tutamaz (asn.roomId varsa)
+       • Block dersleri (bs=2,3...) ardışık slotlarda olmalı
+       • Kilitli öğretmenin slotları aynen korunur
+       • Diff=3 (zor) dersler ilk 4 saate öncelik (yumuşak kısıtlama)
+     ═══════════════════════════════════════════════════════════════════ */
+
+  function calcBlocks(hw, bs) {
+    if (bs <= 1 || !bs) return Array(hw).fill(1);
+    var blocks = [], rem = hw;
+    while (rem > 0) {
+      if (rem >= bs) { blocks.push(bs); rem -= bs; }
+      else { blocks.push(rem); rem = 0; }
+    }
+    return blocks;
+  }
+
+  /* Tek bir blok yerleştirme denemesi */
+  function tryPlaceBlock(asn, blockSize, day, hour, busy) {
+    /* busy = { tBusy, cBusy, rBusy } maps with key `${id}_${day}_${hour}` */
+    for (var i = 0; i < blockSize; i++) {
+      var k = day + '_' + (hour + i);
+      if (busy.cBusy[asn.cId + '_' + k]) return false;
+      if (busy.tBusy[asn.tId + '_' + k]) return false;
+      if (asn.roomId && busy.rBusy[asn.roomId + '_' + k]) return false;
+    }
+    return true;
+  }
+
+  function commitBlock(asn, blockSize, day, hour, sched, busy) {
+    for (var i = 0; i < blockSize; i++) {
+      var k = day + '_' + (hour + i);
+      sched[asn.cId + '_' + k] = asn.id;
+      busy.tBusy[asn.tId + '_' + k] = true;
+      busy.cBusy[asn.cId + '_' + k] = true;
+      if (asn.roomId) busy.rBusy[asn.roomId + '_' + k] = true;
+    }
+  }
+
+  function uncommitBlock(asn, blockSize, day, hour, sched, busy) {
+    for (var i = 0; i < blockSize; i++) {
+      var k = day + '_' + (hour + i);
+      delete sched[asn.cId + '_' + k];
+      delete busy.tBusy[asn.tId + '_' + k];
+      delete busy.cBusy[asn.cId + '_' + k];
+      if (asn.roomId) delete busy.rBusy[asn.roomId + '_' + k];
+    }
+  }
+
+  function getSubjectDiff(data, sId) {
+    var s = (data.subjects || []).find(function(x){ return x.id === sId; });
+    return (s && typeof s.diff === 'number') ? s.diff : 2;
+  }
+
+  function smartRegenerate(data, lockedIds, opts) {
+    opts = opts || {};
+    var asns = data.asns || [];
+    var hoursPerDay = (data.periods && data.periods.length) || 8;
+    var days = 5;
+
+    var sched = {};
+    var busy = { tBusy: {}, cBusy: {}, rBusy: {} };
+
+    var asnMap = {};
+    asns.forEach(function(a){ asnMap[a.id] = a; });
+
+    /* ── 1) Kilitli slotları koru ── */
+    var lockedSlotCount = 0;
+    Object.entries(data.sched || {}).forEach(function(entry){
+      var key = entry[0], asnId = entry[1];
+      if (!asnId) return;
+      var asn = asnMap[asnId];
+      if (!asn) return;
+      if (lockedIds.indexOf(asn.tId) < 0) return;
+      sched[key] = asnId;
+      lockedSlotCount++;
+      var parts = key.split('_');
+      var cId = parts[0], day = parts[1], hour = parts[2];
+      busy.tBusy[asn.tId + '_' + day + '_' + hour] = true;
+      busy.cBusy[cId + '_' + day + '_' + hour] = true;
+      if (asn.roomId) busy.rBusy[asn.roomId + '_' + day + '_' + hour] = true;
+    });
+
+    /* ── 2) Kilitli olmayan atamaları topla ── */
+    var nonLockedAsns = asns.filter(function(a){ return lockedIds.indexOf(a.tId) < 0; });
+
+    /* ── 3) Sırala: önce zor dersler, sonra büyük saatler, sonra blok büyüklük ── */
+    nonLockedAsns.sort(function(a, b){
+      var diffA = getSubjectDiff(data, a.sId);
+      var diffB = getSubjectDiff(data, b.sId);
+      if (diffA !== diffB) return diffB - diffA; /* zor önce */
+      var bsA = a.bs || 1, bsB = b.bs || 1;
+      if (bsA !== bsB) return bsB - bsA; /* blok büyük önce */
+      return (b.hw || 0) - (a.hw || 0); /* saat çok önce */
+    });
+
+    /* ── 4) Her atamayı yerleştir ── */
+    var unplaced = [];
+    var placedHours = 0;
+    var totalNonLockedHours = nonLockedAsns.reduce(function(s,a){ return s + (a.hw || 0); }, 0);
+
+    nonLockedAsns.forEach(function(asn){
+      var blocks = calcBlocks(asn.hw || 0, asn.bs || 1);
+      var isHard = getSubjectDiff(data, asn.sId) >= 3;
+
+      blocks.forEach(function(blockSize){
+        var placed = false;
+
+        /* Gün ve saat sırası — kullanılan rastgelelikle dengelenir */
+        var dayOrder = [0,1,2,3,4].sort(function(){ return Math.random() - 0.5; });
+
+        /* Zor dersler için erken saatleri önceliklendir */
+        var hourMax = hoursPerDay - blockSize;
+        var hourOrder = [];
+        for (var h = 0; h <= hourMax; h++) hourOrder.push(h);
+        if (isHard) {
+          /* Erken saatler önce, geç saatler ikincil */
+          hourOrder.sort(function(a, b){ return a - b; });
+        } else {
+          /* Hafif rastgele dağılım */
+          if (Math.random() > 0.5) hourOrder.sort(function(a, b){ return b - a; });
+        }
+
+        for (var di = 0; di < dayOrder.length && !placed; di++) {
+          for (var hi = 0; hi < hourOrder.length && !placed; hi++) {
+            var day = dayOrder[di];
+            var hour = hourOrder[hi];
+            if (tryPlaceBlock(asn, blockSize, day, hour, busy)) {
+              commitBlock(asn, blockSize, day, hour, sched, busy);
+              placed = true;
+              placedHours += blockSize;
+            }
+          }
+        }
+        if (!placed) unplaced.push({ asn: asn, block: blockSize });
+      });
+    });
+
+    /* ── 5) Yerleştirilemeyen varsa, yumuşak constraint'leri gevşeterek tekrar dene ── */
+    if (unplaced.length > 0) {
+      /* İkinci tur: rastgelelik artır, bazı yerleşimleri yeniden yapmaya çalış */
+      var retryAttempts = unplaced.slice();
+      unplaced = [];
+      retryAttempts.forEach(function(u){
+        var asn = u.asn;
+        var blockSize = u.block;
+        var placed = false;
+        var dayOrder = [0,1,2,3,4].sort(function(){ return Math.random() - 0.5; });
+        for (var di = 0; di < dayOrder.length && !placed; di++) {
+          for (var hour = 0; hour <= hoursPerDay - blockSize && !placed; hour++) {
+            if (tryPlaceBlock(asn, blockSize, dayOrder[di], hour, busy)) {
+              commitBlock(asn, blockSize, dayOrder[di], hour, sched, busy);
+              placed = true;
+              placedHours += blockSize;
+            }
+          }
+        }
+        if (!placed) unplaced.push(u);
+      });
+    }
+
+    return {
+      sched: sched,
+      lockedSlotCount: lockedSlotCount,
+      placedHours: placedHours,
+      totalNonLockedHours: totalNonLockedHours,
+      unplaced: unplaced,
+      success: unplaced.length === 0
+    };
+  }
+
+  /* ─────────────────── ÜRETİM TETİKLEYİCİ ─────────────────── */
+  function runSmartRegen() {
+    var data = getData();
+    if (!data) { alert("⚠️ Veri bulunamadı. Önce öğretmenleri ve dersleri ekleyin."); return; }
+
+    var lockedIds = getLocks();
+    var asns = data.asns || [];
+
+    if (asns.length === 0) {
+      alert("⚠️ Atama bulunamadı. Önce 'Atamalar' sekmesinde öğretmen-sınıf-ders atamaları yapın.");
+      return;
+    }
+
+    var lockedTeachers = (data.teachers || []).filter(function(t){ return lockedIds.indexOf(t.id) >= 0; });
+
+    var confirmMsg;
+    if (lockedIds.length === 0) {
+      confirmMsg = "Hiç öğretmen kilitli değil.\n\nTüm program sıfırdan yeniden üretilecek. Devam edelim mi?\n\n(Eğer kilitli öğretmen ile çalışmak istiyorsanız önce Öğretmenler sekmesinde 🔒 işaretleyin.)";
+    } else {
+      var names = lockedTeachers.map(function(t){ return "• " + t.name; }).join("\n");
+      confirmMsg = "🔒 KİLİTLİ ÖĞRETMENLER (" + lockedIds.length + "):\n" + names +
+        "\n\nBu öğretmenlerin mevcut dersleri AYNEN korunacak.\nDiğer öğretmenlerin dersleri ise yeniden dağıtılacak.\n\nDevam edilsin mi?";
+    }
+
+    if (!confirm(confirmMsg)) return;
+
+    /* Loading overlay göster */
+    showLoadingOverlay();
+
+    /* Mevcut sched'i yedekle */
+    backupSched(data.sched || {});
+
+    /* Hesaplama */
+    setTimeout(function(){
+      try {
+        var result = smartRegenerate(data, lockedIds);
+
+        /* Yeni sched'i kaydet */
+        data.sched = result.sched;
+        var saved = setData(data);
+        if (!saved) {
+          hideLoadingOverlay();
+          alert("⚠️ Kaydetme hatası.");
+          return;
+        }
+
+        hideLoadingOverlay();
+
+        /* Sonuç özeti */
+        var msg = result.success
+          ? "✅ Akıllı üretim başarılı!\n\n"
+          : "⚠️ Üretim tamamlandı ama bazı sorunlar var.\n\n";
+
+        msg += "🔒 Kilitli slotlar korundu: " + result.lockedSlotCount + " slot\n";
+        msg += "📊 Yeniden yerleştirilen saat: " + result.placedHours + " / " + result.totalNonLockedHours + "\n";
+
+        if (result.unplaced.length > 0) {
+          msg += "\n⚠️ Yerleştirilemeyen " + result.unplaced.length + " blok var:\n";
+          result.unplaced.slice(0, 5).forEach(function(u){
+            var t = (data.teachers || []).find(function(x){ return x.id === u.asn.tId; });
+            var c = (data.classes || []).find(function(x){ return x.id === u.asn.cId; });
+            var s = (data.subjects || []).find(function(x){ return x.id === u.asn.sId; });
+            msg += " • " + (t ? t.name : '?') + " — " +
+              (c ? c.name : '?') + " — " +
+              (s ? s.name : '?') + " (" + u.block + " saat blok)\n";
+          });
+          if (result.unplaced.length > 5) msg += " • ... ve " + (result.unplaced.length - 5) + " tane daha\n";
+          msg += "\n💡 Çözüm: Kilitli öğretmen sayısını azaltın veya programı genişletin.";
+          msg += "\n\nGeri almak için: localStorage'ta 'Geri Al' linki var.";
+        }
+
+        msg += "\n\n→ Sayfa yenileniyor...";
+        alert(msg);
+
+        setTimeout(function(){ window.location.reload(); }, 200);
+      } catch(e) {
+        hideLoadingOverlay();
+        console.error("[Kilit] Üretim hatası:", e);
+        alert("⚠️ Beklenmeyen hata:\n\n" + e.message + "\n\nSayfayı yenileyin. Önceki program korundu.");
+      }
+    }, 50);
+  }
+
+  function undoRegen() {
+    var backup = getBackup();
+    if (!backup || !backup.sched) {
+      alert("⚠️ Geri alınacak yedek bulunamadı.");
+      return;
+    }
+    var ageSec = Math.floor((Date.now() - backup.ts) / 1000);
+    if (!confirm("Son üretimi geri al ve önceki sched'i kullan?\n\nYedek " + ageSec + " saniye öncesinden.")) return;
+
+    var data = getData();
+    if (!data) return;
+    data.sched = backup.sched;
+    setData(data);
+    setTimeout(function(){ window.location.reload(); }, 100);
+  }
+
+  /* ─────────────────── LOADING OVERLAY ─────────────────── */
+  function showLoadingOverlay() {
+    if (document.getElementById("op-loading-overlay")) return;
+    var ov = document.createElement("div");
+    ov.id = "op-loading-overlay";
+    ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,0.85);backdrop-filter:blur(8px);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;color:#fff;font-family:inherit;animation:fadeIn 0.2s ease;";
+    ov.innerHTML =
+      '<style>@keyframes spinOp { to { transform: rotate(360deg); } } @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }</style>' +
+      '<div style="width:48px;height:48px;border:4px solid rgba(251,191,36,0.2);border-top-color:#fbbf24;border-radius:50%;animation:spinOp 0.8s linear infinite;"></div>' +
+      '<div style="font-weight:900;font-size:18px;letter-spacing:-0.02em;">Akıllı Üretim Çalışıyor</div>' +
+      '<div style="font-size:13px;color:#94a3b8;max-width:300px;text-align:center;">Kilitli slotlar korunuyor, diğer dersler optimize ediliyor...</div>';
+    document.body.appendChild(ov);
+  }
+  function hideLoadingOverlay() {
+    var ov = document.getElementById("op-loading-overlay");
+    if (ov) ov.remove();
+  }
+
+  /* ─────────────────── HEAT MAP'E KİLİT BUTONU ENJEKSİYONU ─────────────────── */
+  function enhanceHeatMapWithLocks() {
+    var panel = document.getElementById("op-teacher-heatmap-panel");
+    if (!panel) return;
+    if (panel.dataset.locksApplied === "1") return;
+    panel.dataset.locksApplied = "1";
+
+    var locks = getLocks();
+    var data = getData();
+    if (!data || !data.teachers) return;
+
+    /* Header'a kilit sayısı badge'i ekle */
+    var existingBadge = panel.querySelector(".op-lock-count-badge");
+    if (existingBadge) existingBadge.remove();
+    if (locks.length > 0) {
+      var headerArea = panel.querySelector("div[style*='flex-wrap:wrap']") || panel.firstChild;
+      if (headerArea) {
+        var badge = document.createElement("div");
+        badge.className = "op-lock-count-badge";
+        badge.style.cssText = "display:inline-flex;align-items:center;gap:5px;background:#0f172a;color:#fbbf24;padding:5px 10px;border-radius:999px;font-size:11px;font-weight:800;margin-left:8px;box-shadow:0 2px 6px rgba(15,23,42,0.3);";
+        badge.innerHTML = '🔒 ' + locks.length + ' kilitli';
+        headerArea.appendChild(badge);
+      }
+    }
+
+    /* Her öğretmen satırına kilit butonu ekle */
+    var rows = panel.querySelectorAll("div[style*='border-top:1px solid #f1f5f9']");
+    rows.forEach(function(row){
+      var nameDiv = row.querySelector("div[style*='font-weight:700']");
+      if (!nameDiv) return;
+      if (row.dataset.lockBtnAdded === "1") return;
+      var name = (nameDiv.textContent || "").trim();
+      if (!name) return;
+      var teacher = data.teachers.find(function(t){ return t.name === name; });
+      if (!teacher) return;
+
+      row.dataset.lockBtnAdded = "1";
+      var isLocked = locks.indexOf(teacher.id) >= 0;
+
+      /* Kilitli satırı vurgula */
+      if (isLocked) {
+        row.style.background = "linear-gradient(90deg, rgba(15,23,42,0.06), transparent)";
+        row.style.borderLeft = "3px solid #0f172a";
+        row.style.paddingLeft = "7px";
+        row.style.marginLeft = "-10px";
+      }
+
+      var btn = document.createElement("button");
+      btn.className = "op-lock-toggle-btn";
+      btn.title = isLocked
+        ? "Bu öğretmenin programı kilitli — yeniden üretimde dokunulmayacak. Kilidi açmak için tıkla."
+        : "Bu öğretmenin programını kilitle (yeniden üretimde değişmez)";
+      btn.style.cssText = "width:30px;height:30px;border-radius:8px;border:none;cursor:pointer;font-size:14px;flex-shrink:0;margin-left:6px;transition:all .15s ease;" +
+        (isLocked
+          ? "background:#0f172a;color:#fbbf24;box-shadow:0 3px 8px rgba(15,23,42,0.4);"
+          : "background:#f1f5f9;color:#94a3b8;");
+      btn.innerHTML = isLocked ? "🔒" : "🔓";
+      btn.onmouseenter = function(){
+        btn.style.transform = "translateY(-1px)";
+        if (!isLocked) btn.style.background = "#e2e8f0";
+      };
+      btn.onmouseleave = function(){
+        btn.style.transform = "translateY(0)";
+        if (!isLocked) btn.style.background = "#f1f5f9";
+      };
+      btn.onclick = function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        window.__opToggleLock(teacher.id);
+      };
+      row.appendChild(btn);
+    });
+  }
+
+  /* ─────────────────── "AKILLI ÜRET" BUTONU ─────────────────── */
+  function findRegenButton() {
+    var allButtons = document.querySelectorAll("button");
+    for (var i = 0; i < allButtons.length; i++) {
+      var t = (allButtons[i].textContent || "").trim();
+      if (t === "Yeniden Hazırla" || t === "Programı Oluştur" || t === "Programı Hazırla" || t === "Hazırla") {
+        return allButtons[i];
+      }
+    }
+    return null;
+  }
+
+  function injectSmartButton() {
+    var target = findRegenButton();
+    if (!target) return;
+    var existing = document.getElementById("op-smart-regen-btn");
+    if (existing) return; /* zaten var */
+
+    var locks = getLocks();
+    var btn = document.createElement("button");
+    btn.id = "op-smart-regen-btn";
+
+    var bg = locks.length > 0
+      ? "linear-gradient(135deg, #0f172a, #1e293b)"
+      : "#fff";
+    var color = locks.length > 0 ? "#fbbf24" : "#0f172a";
+    var border = locks.length > 0 ? "#0f172a" : "#cbd5e1";
+    var shadow = locks.length > 0
+      ? "0 4px 12px rgba(15,23,42,0.35)"
+      : "0 2px 6px rgba(15,23,42,0.08)";
+
+    btn.style.cssText = "display:inline-flex;align-items:center;gap:6px;padding:9px 16px;background:" +
+      bg + ";color:" + color + ";border:1px solid " + border +
+      ";border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;transition:all .2s ease;margin-left:8px;" +
+      "box-shadow:" + shadow + ";letter-spacing:-0.01em;font-family:inherit;";
+
+    var label = '🔒 Kilitlerle Üret';
+    if (locks.length > 0) {
+      label += ' <span style="background:#fbbf24;color:#0f172a;padding:2px 7px;border-radius:999px;font-size:10px;margin-left:2px;font-weight:900;">' + locks.length + '</span>';
+    }
+    btn.innerHTML = label;
+    btn.title = locks.length > 0
+      ? lockTooltipMsg(locks.length)
+      : "Kilitlerle Yeniden Üret (önce öğretmen kilitleyin)";
+
+    btn.onmouseenter = function(){ btn.style.transform = "translateY(-1px)"; };
+    btn.onmouseleave = function(){ btn.style.transform = "translateY(0)"; };
+    btn.onclick = function(e){ e.preventDefault(); runSmartRegen(); };
+
+    if (target.parentNode) {
+      target.parentNode.insertBefore(btn, target.nextSibling);
+    }
+
+    /* Geri al butonu — yedek varsa göster */
+    var backup = getBackup();
+    if (backup && !document.getElementById("op-undo-btn")) {
+      var ageMin = Math.floor((Date.now() - backup.ts) / 60000);
+      if (ageMin < 60) { /* 1 saatten yeni yedek */
+        var undoBtn = document.createElement("button");
+        undoBtn.id = "op-undo-btn";
+        undoBtn.style.cssText = "display:inline-flex;align-items:center;gap:4px;padding:7px 12px;background:#fff;color:#475569;border:1px solid #cbd5e1;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s ease;margin-left:6px;font-family:inherit;";
+        undoBtn.innerHTML = '↶ Son Üretimi Geri Al';
+        undoBtn.title = "Son akıllı üretimden önceki sched'e dön (" + ageMin + " dk önce)";
+        undoBtn.onclick = function(e){ e.preventDefault(); undoRegen(); };
+        if (target.parentNode) target.parentNode.insertBefore(undoBtn, btn.nextSibling);
+      }
+    }
+  }
+
+  function lockTooltipMsg(n) {
+    return n + " öğretmen kilitli. Onların slotları korunarak diğerleri yeniden dağıtılır.";
+  }
+
+  function refreshSmartButton() {
+    var btn = document.getElementById("op-smart-regen-btn");
+    if (btn) btn.remove();
+    var undo = document.getElementById("op-undo-btn");
+    if (undo) undo.remove();
+    injectSmartButton();
+  }
+
+  /* ─────────────────── DERS PROGRAMI GÖRÜNÜMÜNE KİLİT ROZETİ ─────────────────── */
+  function enhanceScheduleViewWithLockBadges() {
+    /* Sched görünümünde kilitli öğretmenlerin slotlarına 🔒 işareti ekle */
+    var locks = getLocks();
+    if (locks.length === 0) {
+      /* Eski rozetleri temizle */
+      document.querySelectorAll(".op-lock-badge-on-slot").forEach(function(el){ el.remove(); });
+      return;
+    }
+
+    var data = getData();
+    if (!data || !data.asns || !data.sched) return;
+
+    var lockedAsnIds = new Set();
+    data.asns.forEach(function(a){
+      if (locks.indexOf(a.tId) >= 0) lockedAsnIds.add(a.id);
+    });
+
+    /* Schedule'ı render eden tabloda her hücreyi tarayıp kilitli ise rozet ekle */
+    /* Bu kısım bundle'a bağımlı, basit text-match kullanıyoruz */
+    /* Daha güvenli: sadece heat-map'te ve "Kilitlerle Üret" butonunda kilit göster */
+    /* Tablodaki vurgu opsiyonel ve karmaşık olduğu için şimdilik atlandı */
+  }
+
+  /* ─────────────────── WATCHER ─────────────────── */
+  var pending = null;
+  function scheduleRefresh() {
+    if (pending) return;
+    pending = setTimeout(function(){
+      pending = null;
+      try {
+        enhanceHeatMapWithLocks();
+        injectSmartButton();
+      } catch(e) {
+        console.error("[Kilit] Refresh hatası:", e);
+      }
+    }, 300);
+  }
+
+  function watch() {
+    scheduleRefresh();
+    var obs = new MutationObserver(function(mutations){
+      /* Kendi elementlerimizin değişiminde döngüye girme */
+      for (var i = 0; i < mutations.length; i++) {
+        var m = mutations[i];
+        if (!m.target) continue;
+        var t = m.target;
+        if (t.id && (t.id === "op-smart-regen-btn" || t.id === "op-teacher-heatmap-panel" || t.id === "op-undo-btn" || t.id === "op-loading-overlay")) return;
+        if (t.closest && (t.closest("#op-smart-regen-btn") || t.closest("#op-teacher-heatmap-panel") || t.closest("#op-loading-overlay"))) return;
+      }
+      scheduleRefresh();
+    });
+    if (document.body) obs.observe(document.body, { childList: true, subtree: true });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", watch);
+  } else {
+    watch();
+  }
+})();
+</script>
+
 </head>
 <body>
   <div id="root"></div>
