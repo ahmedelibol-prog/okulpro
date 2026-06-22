@@ -808,226 +808,6 @@ Error generating stack: `+a.message+`
 </script>
 
 <script>
-/* OkulPro — Öğretmen Yük Heat Map (Bilgileri Kaydet > Öğretmenler) */
-(function(){
-  if (!window.location.pathname.startsWith("/app")) return;
-
-  var TR_DAYS_SHORT = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
-  var TR_DAYS = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
-
-  function hourHeat(h) {
-    if (h === 0) return { bg: '#f1f5f9', text: '#64748b', label: 'boş' };
-    if (h <= 2) return { bg: '#d1fae5', text: '#065f46', label: 'rahat' };
-    if (h <= 4) return { bg: '#dbeafe', text: '#1e3a8a', label: 'orta' };
-    if (h <= 5) return { bg: '#fef3c7', text: '#92400e', label: 'yoğun' };
-    return { bg: '#ffe4e6', text: '#991b1b', label: 'çok yoğun' };
-  }
-
-  /* Öğretmenlerin günlük ders saatlerini hesapla */
-  function computeDailyHours() {
-    try {
-      var raw = localStorage.getItem("okulpro_veri");
-      if (!raw) return null;
-      var data = JSON.parse(raw);
-      if (!data.teachers || !data.teachers.length) return null;
-
-      var hours = {};
-      data.teachers.forEach(function(t){
-        hours[t.id] = { name: t.name, branch: t.branch || '', days: {1:0,2:0,3:0,4:0,5:0}, source: 'none' };
-      });
-
-      var usedSched = false;
-      if (data.sched && Object.keys(data.sched).length > 0) {
-        var asnMap = {};
-        (data.asns || []).forEach(function(a){ asnMap[a.id] = a; });
-        Object.entries(data.sched).forEach(function(entry){
-          var key = entry[0], asnId = entry[1];
-          if (!asnId) return;
-          var asn = asnMap[asnId];
-          if (!asn) return;
-          var parts = key.split('_');
-          if (parts.length < 3) return;
-          var dayIdx = parseInt(parts[1], 10);
-          var weekday = dayIdx + 1;
-          if (weekday >= 1 && weekday <= 5 && hours[asn.tId]) {
-            hours[asn.tId].days[weekday]++;
-            hours[asn.tId].source = 'sched';
-          }
-        });
-        usedSched = true;
-      } else if (data.asns && data.asns.length) {
-        var totalPer = {};
-        data.asns.forEach(function(a){
-          if (!totalPer[a.tId]) totalPer[a.tId] = 0;
-          totalPer[a.tId] += (a.hw || 0);
-        });
-        Object.entries(totalPer).forEach(function(entry){
-          var tId = entry[0], total = entry[1];
-          if (!hours[tId]) return;
-          var perDay = Math.floor(total / 5);
-          var rem = total % 5;
-          for (var d = 1; d <= 5; d++) {
-            hours[tId].days[d] = perDay + (d <= rem ? 1 : 0);
-            hours[tId].source = 'asns';
-          }
-        });
-      }
-
-      return { hours: hours, usedSched: usedSched, hasData: Object.keys(hours).length > 0 };
-    } catch(e) { console.error("[Yük Heat Map] hata:", e); return null; }
-  }
-
-  /* Heat map paneli oluştur */
-  function buildPanel() {
-    var data = computeDailyHours();
-    if (!data || !data.hasData) return null;
-
-    var teachers = Object.values(data.hours);
-    var totalWeekly = teachers.reduce(function(sum, t){
-      return sum + Object.values(t.days).reduce(function(a,b){return a+b;}, 0);
-    }, 0);
-
-    var panel = document.createElement("div");
-    panel.id = "op-teacher-heatmap-panel";
-    panel.style.cssText = "background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px 18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(15,23,42,0.04);font-family:inherit;";
-
-    var headerHtml = '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;">' +
-      '<div style="display:flex;align-items:center;gap:10px;">' +
-        '<div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg, #f59e0b, #b45309);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;flex-shrink:0;">🔥</div>' +
-        '<div>' +
-          '<div style="font-weight:800;font-size:14px;color:#0f172a;letter-spacing:-0.01em;">Öğretmen Yük Haritası</div>' +
-          '<div style="font-size:11px;color:#94a3b8;margin-top:1px;">' +
-            (data.usedSched ? '✓ Ders programındaki gerçek günlük saatler' : '⚠️ Atamalardan tahmini (program henüz oluşturulmadı)') +
-          '</div>' +
-        '</div>' +
-      '</div>' +
-      '<div style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:0.05em;text-transform:uppercase;">' + teachers.length + ' öğretmen · ' + totalWeekly + 'h/hafta</div>' +
-    '</div>';
-
-    var rowsHtml = teachers.map(function(t, i){
-      var weekly = Object.values(t.days).reduce(function(a,b){return a+b;}, 0);
-      var initials = t.name.split(' ').map(function(n){return n[0];}).join('').slice(0,2).toUpperCase();
-      var palette = ['#0284c7','#059669','#ea580c','#db2777','#d97706','#7c3aed','#e11d48','#65a30d','#4f46e5','#0d9488','#c026d3','#0891b2'];
-      var clr = palette[i % palette.length];
-
-      var daysHtml = [1,2,3,4,5].map(function(d){
-        var h = t.days[d] || 0;
-        var heat = hourHeat(h);
-        return '<div title="' + TR_DAYS[d] + ' — ' + h + ' ders saati (' + heat.label + ')" ' +
-          'style="flex:1;padding:6px 4px;background:' + heat.bg + ';color:' + heat.text + ';border-radius:6px;text-align:center;">' +
-          '<div style="font-size:9px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;opacity:0.7;">' + TR_DAYS_SHORT[d] + '</div>' +
-          '<div style="font-size:14px;font-weight:900;line-height:1;margin-top:2px;">' + h + '<span style="font-size:8px;font-weight:700;opacity:0.6;">h</span></div>' +
-          '</div>';
-      }).join('');
-
-      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #f1f5f9;">' +
-        '<div style="width:3px;align-self:stretch;background:' + clr + ';border-radius:1px;flex-shrink:0;min-height:28px;"></div>' +
-        '<div style="width:32px;height:32px;background:' + clr + '20;color:' + clr + ';border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:11px;flex-shrink:0;">' + initials + '</div>' +
-        '<div style="flex:1;min-width:0;display:flex;align-items:baseline;gap:6px;">' +
-          '<div style="font-weight:700;color:#0f172a;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + t.name + '</div>' +
-          (t.branch ? '<div style="font-size:10px;color:#94a3b8;">· ' + t.branch + '</div>' : '') +
-        '</div>' +
-        '<div style="display:flex;gap:3px;flex:0 0 auto;min-width:200px;max-width:280px;width:55%;">' + daysHtml + '</div>' +
-        '<div style="font-size:11px;font-weight:800;color:#475569;min-width:36px;text-align:right;">' + weekly + 'h</div>' +
-      '</div>';
-    }).join('');
-
-    panel.innerHTML = headerHtml + '<div>' + rowsHtml + '</div>';
-    return panel;
-  }
-
-  /* Öğretmenler sekmesinde miyiz? */
-  function isOnTeachersTab() {
-    /* "Öğretmen Listesi" başlığını ara */
-    var found = false;
-    var divs = document.querySelectorAll("div");
-    for (var i = 0; i < divs.length; i++) {
-      var t = divs[i].textContent;
-      if (t === "Öğretmen Listesi") { found = true; break; }
-    }
-    return found;
-  }
-
-  function findInsertPoint() {
-    /* "Öğretmen Listesi" başlığını içeren kartın hemen önüne ekleyeceğiz */
-    var divs = document.querySelectorAll("div");
-    for (var i = 0; i < divs.length; i++) {
-      if (divs[i].textContent === "Öğretmen Listesi") {
-        /* Bu başlığın bulunduğu kartın kök elementini bul */
-        var card = divs[i];
-        while (card && card.parentNode && card.parentNode.tagName !== "MAIN" && card.parentNode.tagName !== "BODY") {
-          if (card.parentNode.style && card.parentNode.style.borderRadius) {
-            card = card.parentNode;
-            break;
-          }
-          card = card.parentNode;
-        }
-        return card;
-      }
-    }
-    return null;
-  }
-
-  function refreshPanel() {
-    if (!isOnTeachersTab()) {
-      /* Sekmeden çıkıldıysa paneli kaldır */
-      var existing = document.getElementById("op-teacher-heatmap-panel");
-      if (existing) existing.remove();
-      return;
-    }
-
-    /* Mevcut paneli kaldır (veri değişmiş olabilir) */
-    var existing = document.getElementById("op-teacher-heatmap-panel");
-    if (existing) existing.remove();
-
-    /* Yeni panel oluştur */
-    var newPanel = buildPanel();
-    if (!newPanel) return;
-
-    /* Insert point bul */
-    var card = findInsertPoint();
-    if (!card || !card.parentNode) return;
-
-    /* Aynı yerde ikinci kez eklemeyi önle */
-    if (document.getElementById("op-teacher-heatmap-panel")) return;
-
-    card.parentNode.insertBefore(newPanel, card);
-  }
-
-  var pendingRefresh = null;
-  function scheduleRefresh() {
-    if (pendingRefresh) return;
-    pendingRefresh = setTimeout(function(){
-      pendingRefresh = null;
-      refreshPanel();
-    }, 200);
-  }
-
-  function watch() {
-    scheduleRefresh();
-    var obs = new MutationObserver(function(mutations){
-      /* Sadece kendi panelimiz değişirse loop'a girme */
-      for (var i = 0; i < mutations.length; i++) {
-        var m = mutations[i];
-        if (m.target && m.target.id === "op-teacher-heatmap-panel") return;
-        if (m.target && m.target.closest && m.target.closest("#op-teacher-heatmap-panel")) return;
-      }
-      scheduleRefresh();
-    });
-    if (document.body) {
-      obs.observe(document.body, { childList: true, subtree: true });
-    }
-  }
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", watch);
-  } else {
-    watch();
-  }
-})();
-</script>
-
-<script>
 /* ═══════════════════════════════════════════════════════════════════════
    OkulPro — Tam Entegre Öğretmen Kilidi + Akıllı Yeniden Üretim v2
    ─────────────────────────────────────────────────────────────────────
@@ -1094,13 +874,7 @@ Error generating stack: `+a.message+`
       panel.dataset.locksApplied = "0";
       enhanceHeatMapWithLocks();
     }
-    /* Ana listedeki butonları yenile */
-    document.querySelectorAll('[data-op-main-lock-tid]').forEach(function(el){ el.remove(); });
-    document.querySelectorAll('[data-op-main-lock-row="1"]').forEach(function(el){
-      el.style.background = "";
-      el.style.borderLeft = "";
-      delete el.dataset.opMainLockRow;
-    });
+    /* Ana listedeki butonları yenile (idempotent — sadece state güncellenir) */
     enhanceMainTeacherListWithLocks();
     refreshSmartButton();
   }
@@ -1523,12 +1297,41 @@ Error generating stack: `+a.message+`
         }
         if (!row || depth >= 6) continue;
 
-        /* Bu row'a daha önce kilit butonu eklendi mi? */
-        if (row.querySelector('[data-op-main-lock-tid="' + teacher.id + '"]')) continue;
+        /* Bu row'a daha önce kilit butonu eklendi mi? Eğer var ve state aynıysa hiçbir şey yapma */
+        var existingBtn = row.querySelector('[data-op-main-lock-tid="' + teacher.id + '"]');
+        if (existingBtn) {
+          var currentState = existingBtn.getAttribute("data-locked") === "1";
+          if (currentState === isLocked) {
+            break; /* state aynı, geç */
+          }
+          /* state farklı, sadece görsel güncelle (yeniden create etme) */
+          existingBtn.setAttribute("data-locked", isLocked ? "1" : "0");
+          existingBtn.innerHTML = isLocked ? "🔒" : "🔓";
+          existingBtn.title = isLocked
+            ? "🔒 KİLİTLİ — Bu öğretmenin programı yeniden üretimde DOKUNULMAZ. Kilidi açmak için tıkla."
+            : "🔓 Açık — Bu öğretmenin programını kilitlemek için tıkla";
+          existingBtn.style.background = isLocked
+            ? "linear-gradient(135deg, #0f172a, #1e293b)"
+            : "#fef3c7";
+          existingBtn.style.color = isLocked ? "#fbbf24" : "#92400e";
+          existingBtn.style.border = "2px solid " + (isLocked ? "#fbbf24" : "#fde68a");
+          existingBtn.style.boxShadow = isLocked ? "0 3px 10px rgba(15,23,42,0.4)" : "none";
+          if (isLocked) {
+            row.style.background = "linear-gradient(90deg, rgba(15,23,42,0.04), transparent)";
+            row.style.borderLeft = "4px solid #0f172a";
+            row.dataset.opMainLockRow = "1";
+          } else {
+            row.style.background = "";
+            row.style.borderLeft = "";
+            delete row.dataset.opMainLockRow;
+          }
+          break;
+        }
 
         /* Kilit butonu oluştur ve edit butonundan ÖNCE ekle */
         var lockBtn = document.createElement("button");
         lockBtn.setAttribute("data-op-main-lock-tid", teacher.id);
+        lockBtn.setAttribute("data-locked", isLocked ? "1" : "0");
         lockBtn.title = isLocked
           ? "🔒 KİLİTLİ — Bu öğretmenin programı yeniden üretimde DOKUNULMAZ. Kilidi açmak için tıkla."
           : "🔓 Açık — Bu öğretmenin programını kilitlemek için tıkla";
@@ -1690,10 +1493,18 @@ Error generating stack: `+a.message+`
     /* Tablodaki vurgu opsiyonel ve karmaşık olduğu için şimdilik atlandı */
   }
 
-  /* ─────────────────── WATCHER ─────────────────── */
+  /* ─────────────────── WATCHER (own-mutation-filtered + idempotent) ─────────────────── */
+  function isOurNode(node) {
+    if (!node || node.nodeType !== 1) return false;
+    if (node.id && node.id.indexOf("op-") === 0) return true;
+    if (node.hasAttribute && node.hasAttribute("data-op-main-lock-tid")) return true;
+    if (node.className && typeof node.className === "string" && node.className.indexOf("op-lock") >= 0) return true;
+    return false;
+  }
+
   var pending = null;
   function scheduleRefresh() {
-    if (pending) return;
+    if (pending) clearTimeout(pending);
     pending = setTimeout(function(){
       pending = null;
       try {
@@ -1703,21 +1514,484 @@ Error generating stack: `+a.message+`
       } catch(e) {
         console.error("[Kilit] Refresh hatası:", e);
       }
-    }, 300);
+    }, 400);
   }
 
   function watch() {
     scheduleRefresh();
     var obs = new MutationObserver(function(mutations){
-      /* Kendi elementlerimizin değişiminde döngüye girme */
-      for (var i = 0; i < mutations.length; i++) {
+      /* Sadece NON-OUR değişikliklerde refresh tetikle */
+      var hasNonOurChange = false;
+      for (var i = 0; i < mutations.length && !hasNonOurChange; i++) {
         var m = mutations[i];
-        if (!m.target) continue;
-        var t = m.target;
-        if (t.id && (t.id === "op-smart-regen-btn" || t.id === "op-teacher-heatmap-panel" || t.id === "op-undo-btn" || t.id === "op-loading-overlay")) return;
-        if (t.closest && (t.closest("#op-smart-regen-btn") || t.closest("#op-teacher-heatmap-panel") || t.closest("#op-loading-overlay"))) return;
+        /* Bizim element içinde olan değişiklikleri yoksay */
+        if (m.target && m.target.closest) {
+          if (m.target.closest("#op-smart-regen-btn") ||
+              m.target.closest("#op-teacher-heatmap-panel") ||
+              m.target.closest("#op-undo-btn") ||
+              m.target.closest("#op-loading-overlay") ||
+              m.target.closest("[data-op-main-lock-tid]")) continue;
+        }
+        /* Added/removed node'lar tamamen bize aitse skip */
+        var allOurs = true;
+        for (var j = 0; j < m.addedNodes.length; j++) {
+          if (!isOurNode(m.addedNodes[j])) { allOurs = false; break; }
+        }
+        if (allOurs) {
+          for (var j = 0; j < m.removedNodes.length; j++) {
+            if (!isOurNode(m.removedNodes[j])) { allOurs = false; break; }
+          }
+        }
+        if (m.addedNodes.length === 0 && m.removedNodes.length === 0) continue;
+        if (!allOurs) hasNonOurChange = true;
       }
-      scheduleRefresh();
+      if (hasNonOurChange) scheduleRefresh();
+    });
+    if (document.body) obs.observe(document.body, { childList: true, subtree: true });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", watch);
+  } else {
+    watch();
+  }
+})();
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   OkulPro — Unified Panel System (Yük Haritası + Gün Haritası)
+   ─────────────────────────────────────────────────────────────────────
+   Öğretmenler sekmesinin ÜSTÜNE buton barı koyar.
+   İki buton: 🔥 Yük Haritası, 📅 Gün Haritası
+   Her ikisi de açılır/kapanır panel; varsayılan kapalı.
+   localStorage'da hatırlanır: okulpro_panels = {load: true/false, day: true/false}
+   ═══════════════════════════════════════════════════════════════════════ */
+(function(){
+  if (!window.location.pathname.startsWith("/app")) return;
+
+  var KEY_PANELS = "okulpro_panels_state";
+  var TR_DAYS_SHORT = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
+  var TR_DAYS = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+
+  function hourHeat(h) {
+    if (h === 0) return { bg: '#f1f5f9', text: '#64748b', label: 'boş' };
+    if (h <= 2) return { bg: '#d1fae5', text: '#065f46', label: 'rahat' };
+    if (h <= 4) return { bg: '#dbeafe', text: '#1e3a8a', label: 'orta' };
+    if (h <= 5) return { bg: '#fef3c7', text: '#92400e', label: 'yoğun' };
+    return { bg: '#ffe4e6', text: '#991b1b', label: 'çok yoğun' };
+  }
+
+  function getPanelState() {
+    try {
+      var raw = localStorage.getItem(KEY_PANELS);
+      return raw ? JSON.parse(raw) : { load: false, day: false };
+    } catch(_) { return { load: false, day: false }; }
+  }
+  function setPanelState(state) {
+    try { localStorage.setItem(KEY_PANELS, JSON.stringify(state)); } catch(_) {}
+  }
+  function togglePanel(which) {
+    var state = getPanelState();
+    state[which] = !state[which];
+    setPanelState(state);
+    refresh();
+  }
+  window.__opTogglePanel = togglePanel;
+
+  function getData() {
+    try {
+      var raw = localStorage.getItem("okulpro_veri");
+      return raw ? JSON.parse(raw) : null;
+    } catch(_) { return null; }
+  }
+
+  /* ─────────────────── YÜK HARİTASI HESAPLAMA ─────────────────── */
+  function computeDailyHours() {
+    var data = getData();
+    if (!data || !data.teachers || !data.teachers.length) return null;
+    var hours = {};
+    data.teachers.forEach(function(t){
+      hours[t.id] = { id: t.id, name: t.name, branch: t.branch || '', days: {1:0,2:0,3:0,4:0,5:0}, source: 'none' };
+    });
+    var usedSched = false;
+    if (data.sched && Object.keys(data.sched).length > 0) {
+      var asnMap = {};
+      (data.asns || []).forEach(function(a){ asnMap[a.id] = a; });
+      Object.entries(data.sched).forEach(function(entry){
+        var key = entry[0], asnId = entry[1];
+        if (!asnId) return;
+        var asn = asnMap[asnId];
+        if (!asn) return;
+        var parts = key.split('_');
+        if (parts.length < 3) return;
+        var dayIdx = parseInt(parts[1], 10);
+        var weekday = dayIdx + 1;
+        if (weekday >= 1 && weekday <= 5 && hours[asn.tId]) {
+          hours[asn.tId].days[weekday]++;
+        }
+      });
+      usedSched = true;
+    } else if (data.asns && data.asns.length) {
+      var totalPer = {};
+      data.asns.forEach(function(a){
+        if (!totalPer[a.tId]) totalPer[a.tId] = 0;
+        totalPer[a.tId] += (a.hw || 0);
+      });
+      Object.entries(totalPer).forEach(function(entry){
+        var tId = entry[0], total = entry[1];
+        if (!hours[tId]) return;
+        var perDay = Math.floor(total / 5);
+        var rem = total % 5;
+        for (var d = 1; d <= 5; d++) {
+          hours[tId].days[d] = perDay + (d <= rem ? 1 : 0);
+        }
+      });
+    }
+    return { hours: hours, usedSched: usedSched };
+  }
+
+  /* ─────────────────── YÜK HARİTASI PANEL ─────────────────── */
+  function buildLoadHeatMap() {
+    var data = computeDailyHours();
+    if (!data) return null;
+    var teachers = Object.values(data.hours);
+    if (!teachers.length) return null;
+    var totalWeekly = teachers.reduce(function(s, t){ return s + Object.values(t.days).reduce(function(a,b){return a+b;}, 0); }, 0);
+
+    var panel = document.createElement("div");
+    panel.id = "op-teacher-heatmap-panel";
+    panel.style.cssText = "background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px 18px;margin-bottom:12px;box-shadow:0 1px 3px rgba(15,23,42,0.04);font-family:inherit;animation:opFade 0.25s ease;";
+
+    var palette = ['#0284c7','#059669','#ea580c','#db2777','#d97706','#7c3aed','#e11d48','#65a30d','#4f46e5','#0d9488','#c026d3','#0891b2'];
+
+    var rowsHtml = teachers.map(function(t, i){
+      var weekly = Object.values(t.days).reduce(function(a,b){return a+b;}, 0);
+      var initials = t.name.split(' ').map(function(n){return n[0];}).join('').slice(0,2).toUpperCase();
+      var clr = palette[i % palette.length];
+
+      var daysHtml = [1,2,3,4,5].map(function(d){
+        var h = t.days[d] || 0;
+        var heat = hourHeat(h);
+        return '<div title="' + TR_DAYS[d] + ' — ' + h + ' ders saati (' + heat.label + ')" ' +
+          'style="flex:1;padding:6px 4px;background:' + heat.bg + ';color:' + heat.text + ';border-radius:6px;text-align:center;">' +
+          '<div style="font-size:9px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;opacity:0.7;">' + TR_DAYS_SHORT[d] + '</div>' +
+          '<div style="font-size:14px;font-weight:900;line-height:1;margin-top:2px;">' + h + '<span style="font-size:8px;font-weight:700;opacity:0.6;">h</span></div>' +
+          '</div>';
+      }).join('');
+
+      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #f1f5f9;">' +
+        '<div style="width:3px;align-self:stretch;background:' + clr + ';border-radius:1px;flex-shrink:0;min-height:28px;"></div>' +
+        '<div style="width:32px;height:32px;background:' + clr + '20;color:' + clr + ';border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:11px;flex-shrink:0;">' + initials + '</div>' +
+        '<div style="flex:1;min-width:0;display:flex;align-items:baseline;gap:6px;">' +
+          '<div style="font-weight:700;color:#0f172a;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + t.name + '</div>' +
+          (t.branch ? '<div style="font-size:10px;color:#94a3b8;">· ' + t.branch + '</div>' : '') +
+        '</div>' +
+        '<div style="display:flex;gap:3px;flex:0 0 auto;min-width:200px;max-width:280px;width:55%;">' + daysHtml + '</div>' +
+        '<div style="font-size:11px;font-weight:800;color:#475569;min-width:36px;text-align:right;">' + weekly + 'h</div>' +
+      '</div>';
+    }).join('');
+
+    panel.innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px;">' +
+        '<div style="display:flex;align-items:center;gap:10px;">' +
+          '<div style="width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg, #f59e0b, #b45309);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;">🔥</div>' +
+          '<div>' +
+            '<div style="font-weight:800;font-size:13px;color:#0f172a;">Öğretmen Yük Haritası</div>' +
+            '<div style="font-size:10px;color:#94a3b8;">' + (data.usedSched ? '✓ Programdaki gerçek günlük saatler' : '⚠️ Atamalardan tahmini saatler') + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div style="font-size:10px;font-weight:700;color:#64748b;letter-spacing:0.05em;text-transform:uppercase;">' + teachers.length + ' öğretmen · ' + totalWeekly + 'h/hafta</div>' +
+      '</div>' +
+      '<div>' + rowsHtml + '</div>';
+
+    return panel;
+  }
+
+  /* ─────────────────── GÜN HARİTASI PANEL (READ-ONLY KISITLAMA GÖRÜNÜMÜ) ─────────────────── */
+  function buildDayMap() {
+    var data = getData();
+    if (!data || !data.teachers || !data.teachers.length) return null;
+    var hoursPerDay = (data.periods && data.periods.length) || 8;
+    var teachers = data.teachers;
+    var palette = ['#0284c7','#059669','#ea580c','#db2777','#d97706','#7c3aed','#e11d48','#65a30d','#4f46e5','#0d9488','#c026d3','#0891b2'];
+
+    var panel = document.createElement("div");
+    panel.id = "op-day-map-panel";
+    panel.style.cssText = "background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px 18px;margin-bottom:12px;box-shadow:0 1px 3px rgba(15,23,42,0.04);font-family:inherit;animation:opFade 0.25s ease;";
+
+    /* Her öğretmen için 5x8 grid göster */
+    var cardsHtml = teachers.map(function(t, i){
+      var con = t.con || {};
+      var initials = t.name.split(' ').map(function(n){return n[0];}).join('').slice(0,2).toUpperCase();
+      var clr = palette[i % palette.length];
+
+      /* Sayım: kaç slot kapalı */
+      var closedCount = Object.values(con).filter(Boolean).length;
+      var totalSlots = 5 * hoursPerDay;
+      var openCount = totalSlots - closedCount;
+
+      /* Header satırı: gün isimleri */
+      var headerCells = '<div style="font-size:9px;font-weight:700;color:#64748b;text-align:center;">St</div>';
+      [1,2,3,4,5].forEach(function(d){
+        headerCells += '<div style="font-size:9px;font-weight:800;color:#64748b;text-align:center;">' + TR_DAYS_SHORT[d] + '</div>';
+      });
+
+      /* Grid: saat × gün */
+      var gridRows = '';
+      for (var h = 0; h < hoursPerDay; h++) {
+        var rowCells = '<div style="font-size:9px;font-weight:700;color:#94a3b8;text-align:center;display:flex;align-items:center;justify-content:center;">' + (h+1) + '</div>';
+        for (var d = 0; d < 5; d++) {
+          var key = d + '_' + h;
+          var isClosed = !!con[key];
+          var cellStyle = isClosed
+            ? "background:#fecaca;border:1px solid #fca5a5;"
+            : "background:#dcfce7;border:1px solid #bbf7d0;";
+          var icon = isClosed ? "✕" : "✓";
+          var color = isClosed ? "#991b1b" : "#166534";
+          rowCells += '<div title="' + TR_DAYS[d+1] + ' ' + (h+1) + '. saat ' + (isClosed ? 'kapalı' : 'açık') + '" ' +
+            'style="' + cellStyle + 'border-radius:4px;font-size:9px;font-weight:900;color:' + color + ';text-align:center;padding:3px 0;">' + icon + '</div>';
+        }
+        gridRows += '<div style="display:grid;grid-template-columns:24px repeat(5, 1fr);gap:2px;margin-top:2px;">' + rowCells + '</div>';
+      }
+
+      return '<div style="display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid #e2e8f0;border-radius:10px;background:#fafafa;">' +
+        '<div style="display:flex;align-items:center;gap:8px;">' +
+          '<div style="width:28px;height:28px;background:' + clr + '20;color:' + clr + ';border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:10px;">' + initials + '</div>' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-weight:800;color:#0f172a;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + t.name + '</div>' +
+            '<div style="font-size:9px;color:#94a3b8;">' + openCount + ' açık · ' + closedCount + ' kapalı</div>' +
+          '</div>' +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:24px repeat(5, 1fr);gap:2px;">' + headerCells + '</div>' +
+        gridRows +
+      '</div>';
+    }).join('');
+
+    panel.innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">' +
+        '<div style="display:flex;align-items:center;gap:10px;">' +
+          '<div style="width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg, #3b82f6, #1d4ed8);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;">📅</div>' +
+          '<div>' +
+            '<div style="font-weight:800;font-size:13px;color:#0f172a;">Öğretmen Gün Haritası</div>' +
+            '<div style="font-size:10px;color:#94a3b8;">Müsait olunan saatler — Düzenlemek için Sistem Ayarları > Öğretmen Kısıtları</div>' +
+          '</div>' +
+        '</div>' +
+        '<div style="font-size:10px;font-weight:700;color:#64748b;letter-spacing:0.05em;text-transform:uppercase;">' + teachers.length + ' öğretmen</div>' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));gap:10px;">' + cardsHtml + '</div>';
+
+    return panel;
+  }
+
+  /* ─────────────────── BUTON BAR ─────────────────── */
+  function buildButtonBar() {
+    var state = getPanelState();
+    var bar = document.createElement("div");
+    bar.id = "op-panel-button-bar";
+    bar.style.cssText = "display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;animation:opFade 0.3s ease;";
+
+    function btnStyle(active, accent) {
+      return "display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:11px;" +
+        "font-size:12px;font-weight:800;cursor:pointer;transition:all .2s ease;font-family:inherit;letter-spacing:-0.01em;" +
+        (active
+          ? "background:linear-gradient(135deg, " + accent[0] + ", " + accent[1] + ");color:#fff;border:1px solid " + accent[1] + ";box-shadow:0 4px 12px " + accent[1] + "55;"
+          : "background:#fff;color:#475569;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(15,23,42,0.04);");
+    }
+
+    var loadBtn = document.createElement("button");
+    loadBtn.id = "op-load-toggle-btn";
+    loadBtn.setAttribute("data-state", state.load ? "1" : "0");
+    loadBtn.style.cssText = btnStyle(state.load, ['#f59e0b', '#b45309']);
+    loadBtn.innerHTML = '<span style="font-size:14px;">🔥</span> Öğretmen Yük Haritası <span style="font-size:11px;opacity:0.7;">' + (state.load ? '▴' : '▾') + '</span>';
+    loadBtn.title = state.load ? "Yük haritasını gizle" : "Öğretmenlerin günlük ders saat dağılımını göster";
+    loadBtn.onmouseenter = function(){ loadBtn.style.transform = "translateY(-1px)"; };
+    loadBtn.onmouseleave = function(){ loadBtn.style.transform = "translateY(0)"; };
+    loadBtn.onclick = function(e){ e.preventDefault(); window.__opTogglePanel("load"); };
+    bar.appendChild(loadBtn);
+
+    var dayBtn = document.createElement("button");
+    dayBtn.id = "op-day-toggle-btn";
+    dayBtn.setAttribute("data-state", state.day ? "1" : "0");
+    dayBtn.style.cssText = btnStyle(state.day, ['#3b82f6', '#1d4ed8']);
+    dayBtn.innerHTML = '<span style="font-size:14px;">📅</span> Öğretmen Gün Haritası <span style="font-size:11px;opacity:0.7;">' + (state.day ? '▴' : '▾') + '</span>';
+    dayBtn.title = state.day ? "Gün haritasını gizle" : "Öğretmenlerin müsaitlik durumunu göster";
+    dayBtn.onmouseenter = function(){ dayBtn.style.transform = "translateY(-1px)"; };
+    dayBtn.onmouseleave = function(){ dayBtn.style.transform = "translateY(0)"; };
+    dayBtn.onclick = function(e){ e.preventDefault(); window.__opTogglePanel("day"); };
+    bar.appendChild(dayBtn);
+
+    return bar;
+  }
+
+  /* ─────────────────── YERLEŞTİRME NOKTASI BUL ─────────────────── */
+  function findInsertPoint() {
+    /* "Öğretmen Listesi" başlığını içeren kartın hemen önüne ekleyeceğiz */
+    var divs = document.querySelectorAll("div");
+    for (var i = 0; i < divs.length; i++) {
+      if (divs[i].textContent === "Öğretmen Listesi") {
+        var card = divs[i];
+        while (card && card.parentNode && card.parentNode.tagName !== "MAIN" && card.parentNode.tagName !== "BODY") {
+          if (card.parentNode.style && card.parentNode.style.borderRadius) {
+            card = card.parentNode;
+            break;
+          }
+          card = card.parentNode;
+        }
+        return card;
+      }
+    }
+    return null;
+  }
+
+  function isOnTeachersTab() {
+    var divs = document.querySelectorAll("div");
+    for (var i = 0; i < divs.length; i++) {
+      if (divs[i].textContent === "Öğretmen Listesi") return true;
+    }
+    return false;
+  }
+
+  /* ─────────────────── ANA REFRESH (Idempotent) ─────────────────── */
+  function dataHash() {
+    try {
+      var raw = localStorage.getItem("okulpro_veri");
+      if (!raw) return "";
+      var d = JSON.parse(raw);
+      var t = (d.teachers || []).map(function(x){
+        return x.id + ":" + x.name + ":" + (x.branch || "") + ":" + JSON.stringify(x.con || {});
+      }).join("|");
+      var s = JSON.stringify(d.sched || {}).length;
+      return t + "|s" + s;
+    } catch(_) { return ""; }
+  }
+
+  function refresh() {
+    if (!isOnTeachersTab()) {
+      /* Sekmeden çıkıldı — tüm panelleri kaldır */
+      ["op-panel-button-bar", "op-teacher-heatmap-panel", "op-day-map-panel"].forEach(function(id){
+        var el = document.getElementById(id);
+        if (el) el.remove();
+      });
+      return;
+    }
+
+    var state = getPanelState();
+    var insertPoint = findInsertPoint();
+    if (!insertPoint || !insertPoint.parentNode) return;
+
+    var parent = insertPoint.parentNode;
+    var hash = dataHash();
+
+    /* ─── 1) Buton bar ─── */
+    var existingBar = document.getElementById("op-panel-button-bar");
+    var loadState = state.load ? "1" : "0";
+    var dayState = state.day ? "1" : "0";
+    var existingLoadBtn = existingBar && existingBar.querySelector("#op-load-toggle-btn");
+    var existingDayBtn = existingBar && existingBar.querySelector("#op-day-toggle-btn");
+
+    var barNeedsUpdate = !existingBar ||
+      (existingLoadBtn && existingLoadBtn.getAttribute("data-state") !== loadState) ||
+      (existingDayBtn && existingDayBtn.getAttribute("data-state") !== dayState);
+
+    if (barNeedsUpdate) {
+      if (existingBar) existingBar.remove();
+      var newBar = buildButtonBar();
+      parent.insertBefore(newBar, insertPoint);
+    } else if (!existingBar.parentNode) {
+      /* Bar var ama parent'tan koparılmış — yeniden ekle */
+      parent.insertBefore(existingBar, insertPoint);
+    }
+
+    /* ─── 2) Yük Haritası Panel ─── */
+    var loadPanel = document.getElementById("op-teacher-heatmap-panel");
+    if (state.load) {
+      if (loadPanel && loadPanel.dataset.dataHash === hash) {
+        /* zaten doğru, dokunma */
+      } else {
+        if (loadPanel) loadPanel.remove();
+        var newLoad = buildLoadHeatMap();
+        if (newLoad) {
+          newLoad.dataset.dataHash = hash;
+          parent.insertBefore(newLoad, insertPoint);
+        }
+      }
+    } else {
+      if (loadPanel) loadPanel.remove();
+    }
+
+    /* ─── 3) Gün Haritası Panel ─── */
+    var dayPanel = document.getElementById("op-day-map-panel");
+    if (state.day) {
+      if (dayPanel && dayPanel.dataset.dataHash === hash) {
+        /* zaten doğru */
+      } else {
+        if (dayPanel) dayPanel.remove();
+        var newDay = buildDayMap();
+        if (newDay) {
+          newDay.dataset.dataHash = hash;
+          parent.insertBefore(newDay, insertPoint);
+        }
+      }
+    } else {
+      if (dayPanel) dayPanel.remove();
+    }
+  }
+
+  /* ─────────────────── ANIMATION CSS ─────────────────── */
+  function injectStyles() {
+    if (document.getElementById("op-panel-styles")) return;
+    var s = document.createElement("style");
+    s.id = "op-panel-styles";
+    s.textContent = "@keyframes opFade { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }";
+    document.head.appendChild(s);
+  }
+
+  /* ─────────────────── WATCHER (own-mutation-filtered) ─────────────────── */
+  function isOurNode(node) {
+    if (!node || node.nodeType !== 1) return false;
+    if (node.id && node.id.indexOf("op-") === 0) return true;
+    if (node.hasAttribute && (node.hasAttribute("data-op-main-lock-tid") || node.hasAttribute("data-op-main-lock-row"))) return true;
+    return false;
+  }
+
+  var pending = null;
+  function scheduleRefresh() {
+    if (pending) clearTimeout(pending);
+    pending = setTimeout(function(){
+      pending = null;
+      try { refresh(); } catch(e) { console.error("[Panels] refresh hatası:", e); }
+    }, 400);
+  }
+
+  function watch() {
+    injectStyles();
+    scheduleRefresh();
+    var obs = new MutationObserver(function(mutations){
+      var hasNonOurChange = false;
+      for (var i = 0; i < mutations.length && !hasNonOurChange; i++) {
+        var m = mutations[i];
+        if (m.target && m.target.closest) {
+          if (m.target.closest("#op-panel-button-bar") ||
+              m.target.closest("#op-teacher-heatmap-panel") ||
+              m.target.closest("#op-day-map-panel") ||
+              m.target.closest("#op-smart-regen-btn") ||
+              m.target.closest("#op-undo-btn") ||
+              m.target.closest("#op-loading-overlay")) continue;
+        }
+        if (m.addedNodes.length === 0 && m.removedNodes.length === 0) continue;
+        var allOurs = true;
+        for (var j = 0; j < m.addedNodes.length; j++) {
+          if (!isOurNode(m.addedNodes[j])) { allOurs = false; break; }
+        }
+        if (allOurs) {
+          for (var j = 0; j < m.removedNodes.length; j++) {
+            if (!isOurNode(m.removedNodes[j])) { allOurs = false; break; }
+          }
+        }
+        if (!allOurs) hasNonOurChange = true;
+      }
+      if (hasNonOurChange) scheduleRefresh();
     });
     if (document.body) obs.observe(document.body, { childList: true, subtree: true });
   }
