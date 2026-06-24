@@ -2242,6 +2242,304 @@ Error generating stack: `+a.message+`
 })();
 </script>
 
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   OkulPro — Okul Profili + TTK Müfredat v2 (8 okul türü)
+   ─────────────────────────────────────────────────────────────────────
+   İlkokul, Ortaokul, İmam Hatip Ortaokulu, Anadolu Lisesi, Fen Lisesi,
+   Sosyal Bilimler Lisesi, Anadolu İmam Hatip Lisesi, Mesleki ve Teknik
+   ═══════════════════════════════════════════════════════════════════════ */
+(function(){
+  if (!window.location.pathname.startsWith("/app")) return;
+
+  var TTK = {"version":"2025-2026","source":"TTK 09/05/2025 - 04 sayılı Karar","updatedAt":"2025-05-09","schoolTypes":{"ilkokul":{"label":"İlkokul","grades":[1,2,3,4],"totalHours":{"1":30,"2":30,"3":30,"4":30},"hasElective":false,"kademe":"ilkogretim"},"ortaokul":{"label":"Ortaokul","grades":[5,6,7,8],"totalHours":{"5":35,"6":35,"7":35,"8":35},"mandatoryTotal":{"5":30,"6":30,"7":30,"8":29},"electiveTotal":{"5":5,"6":5,"7":5,"8":6},"hasElective":true,"kademe":"ortaokul"},"imamhatip_ortaokul":{"label":"İmam Hatip Ortaokulu","grades":[5,6,7,8],"totalHours":{"5":36,"6":36,"7":36,"8":36},"hasElective":true,"kademe":"ortaokul"},"anadolu_lisesi":{"label":"Anadolu Lisesi","grades":[9,10,11,12],"totalHours":{"9":39,"10":39,"11":40,"12":40},"hasElective":true,"hasAlan":true,"kademe":"ortaogretim"},"fen_lisesi":{"label":"Fen Lisesi","grades":[9,10,11,12],"totalHours":{"9":39,"10":39,"11":40,"12":40},"hasElective":true,"kademe":"ortaogretim"},"sosyal_bilimler_lisesi":{"label":"Sosyal Bilimler Lisesi","grades":[9,10,11,12],"totalHours":{"9":39,"10":39,"11":40,"12":40},"hasElective":true,"kademe":"ortaogretim"},"anadolu_imamhatip_lisesi":{"label":"Anadolu İmam Hatip Lisesi","grades":[9,10,11,12],"totalHours":{"9":40,"10":40,"11":40,"12":40},"hasElective":true,"kademe":"ortaogretim"},"meslek_lisesi":{"label":"Mesleki ve Teknik Anadolu Lisesi","grades":[9,10,11,12],"totalHours":{"9":39,"10":40,"11":44,"12":44},"hasElective":true,"hasMeslek":true,"kademe":"ortaogretim"}},"zorunluDersler":{"ilkokul":{"Türkçe":{"1":10,"2":10,"3":8,"4":8},"Matematik":{"1":5,"2":5,"3":5,"4":5},"Hayat Bilgisi":{"1":4,"2":4,"3":3,"4":0},"Fen Bilimleri":{"1":0,"2":0,"3":3,"4":3},"Sosyal Bilgiler":{"1":0,"2":0,"3":0,"4":3},"Din Kültürü ve Ahlak Bilgisi":{"1":0,"2":0,"3":0,"4":2},"Yabancı Dil":{"1":2,"2":2,"3":2,"4":2},"Görsel Sanatlar":{"1":1,"2":1,"3":1,"4":1},"Müzik":{"1":1,"2":1,"3":1,"4":1},"Beden Eğitimi ve Oyun":{"1":5,"2":5,"3":5,"4":2},"İnsan Hakları, Yurttaşlık ve Demokrasi":{"1":0,"2":0,"3":0,"4":1},"Trafik Güvenliği":{"1":0,"2":0,"3":0,"4":1},"Serbest Etkinlikler":{"1":2,"2":2,"3":2,"4":1}},"ortaokul":{"Türkçe":{"5":6,"6":6,"7":5,"8":5},"Matematik":{"5":5,"6":5,"7":5,"8":5},"Fen Bilimleri":{"5":4,"6":4,"7":4,"8":4},"Sosyal Bilgiler":{"5":3,"6":3,"7":3,"8":0},"T.C. İnkılap Tarihi ve Atatürkçülük":{"5":0,"6":0,"7":0,"8":2},"Yabancı Dil":{"5":3,"6":3,"7":4,"8":4},"Din Kültürü ve Ahlak Bilgisi":{"5":2,"6":2,"7":2,"8":2},"Görsel Sanatlar":{"5":1,"6":1,"7":1,"8":1},"Müzik":{"5":1,"6":1,"7":1,"8":1},"Beden Eğitimi ve Spor":{"5":2,"6":2,"7":2,"8":2},"Bilişim Teknolojileri ve Yazılım":{"5":2,"6":2,"7":0,"8":0},"Teknoloji ve Tasarım":{"5":0,"6":0,"7":2,"8":2},"Rehberlik ve Yönlendirme":{"5":1,"6":1,"7":1,"8":1}},"imamhatip_ortaokul":{"Türkçe":{"5":6,"6":6,"7":5,"8":5},"Matematik":{"5":5,"6":5,"7":5,"8":5},"Fen Bilimleri":{"5":4,"6":4,"7":4,"8":4},"Sosyal Bilgiler":{"5":3,"6":3,"7":3,"8":0},"T.C. İnkılap Tarihi ve Atatürkçülük":{"5":0,"6":0,"7":0,"8":2},"Yabancı Dil":{"5":2,"6":2,"7":3,"8":3},"Din Kültürü ve Ahlak Bilgisi":{"5":2,"6":2,"7":2,"8":2},"Kur'an-ı Kerim":{"5":2,"6":2,"7":2,"8":2},"Arapça":{"5":2,"6":2,"7":2,"8":2},"Peygamberimizin Hayatı":{"5":2,"6":2,"7":2,"8":2},"Temel Dini Bilgiler":{"5":0,"6":1,"7":1,"8":1},"Görsel Sanatlar":{"5":1,"6":1,"7":1,"8":1},"Müzik":{"5":1,"6":1,"7":1,"8":1},"Beden Eğitimi ve Spor":{"5":2,"6":2,"7":2,"8":2},"Bilişim Teknolojileri ve Yazılım":{"5":2,"6":2,"7":0,"8":0},"Teknoloji ve Tasarım":{"5":0,"6":0,"7":2,"8":2},"Rehberlik ve Yönlendirme":{"5":1,"6":1,"7":1,"8":1}},"anadolu_lisesi":{"Türk Dili ve Edebiyatı":{"9":5,"10":5,"11":5,"12":5},"Matematik":{"9":6,"10":6,"11":0,"12":0},"Fizik":{"9":2,"10":3,"11":0,"12":0},"Kimya":{"9":2,"10":3,"11":0,"12":0},"Biyoloji":{"9":2,"10":3,"11":0,"12":0},"Tarih":{"9":2,"10":2,"11":0,"12":0},"T.C. İnkılap Tarihi ve Atatürkçülük":{"9":0,"10":0,"11":0,"12":2},"Coğrafya":{"9":2,"10":2,"11":0,"12":0},"Felsefe":{"9":0,"10":0,"11":2,"12":0},"Din Kültürü ve Ahlak Bilgisi":{"9":2,"10":2,"11":2,"12":2},"Birinci Yabancı Dil":{"9":4,"10":4,"11":4,"12":4},"Beden Eğitimi ve Spor":{"9":2,"10":0,"11":0,"12":0},"Görsel Sanatlar / Müzik":{"9":2,"10":0,"11":0,"12":0},"Sağlık Bilgisi ve Trafik Kültürü":{"9":1,"10":0,"11":0,"12":0},"Rehberlik ve Yönlendirme":{"9":0,"10":0,"11":1,"12":1}},"fen_lisesi":{"Türk Dili ve Edebiyatı":{"9":5,"10":5,"11":5,"12":5},"Matematik":{"9":6,"10":6,"11":6,"12":6},"Fizik":{"9":2,"10":4,"11":4,"12":4},"Kimya":{"9":2,"10":4,"11":4,"12":4},"Biyoloji":{"9":2,"10":4,"11":4,"12":4},"Tarih":{"9":2,"10":2,"11":0,"12":0},"T.C. İnkılap Tarihi ve Atatürkçülük":{"9":0,"10":0,"11":0,"12":2},"Coğrafya":{"9":2,"10":2,"11":0,"12":0},"Din Kültürü ve Ahlak Bilgisi":{"9":2,"10":2,"11":2,"12":2},"Birinci Yabancı Dil":{"9":4,"10":4,"11":4,"12":4},"Beden Eğitimi ve Spor":{"9":2,"10":0,"11":0,"12":0},"Rehberlik ve Yönlendirme":{"9":0,"10":0,"11":1,"12":1}},"anadolu_imamhatip_lisesi":{"Türk Dili ve Edebiyatı":{"9":5,"10":5,"11":5,"12":5},"Matematik":{"9":6,"10":6,"11":0,"12":0},"Fizik":{"9":2,"10":2,"11":0,"12":0},"Kimya":{"9":2,"10":2,"11":0,"12":0},"Biyoloji":{"9":2,"10":2,"11":0,"12":0},"Tarih":{"9":2,"10":2,"11":0,"12":0},"T.C. İnkılap Tarihi ve Atatürkçülük":{"9":0,"10":0,"11":0,"12":2},"Coğrafya":{"9":2,"10":2,"11":0,"12":0},"Din Kültürü ve Ahlak Bilgisi":{"9":2,"10":2,"11":2,"12":2},"Birinci Yabancı Dil":{"9":4,"10":4,"11":4,"12":4},"Kur'an-ı Kerim":{"9":2,"10":2,"11":3,"12":2},"Arapça":{"9":2,"10":2,"11":2,"12":2},"Temel Dini Bilgiler":{"9":2,"10":0,"11":0,"12":0},"Siyer":{"9":0,"10":2,"11":0,"12":0},"Fıkıh":{"9":0,"10":0,"11":2,"12":0},"Tefsir":{"9":0,"10":0,"11":0,"12":2},"Hadis":{"9":0,"10":0,"11":2,"12":0},"Kelam":{"9":0,"10":0,"11":0,"12":2},"Beden Eğitimi ve Spor":{"9":2,"10":0,"11":0,"12":0},"Rehberlik ve Yönlendirme":{"9":0,"10":0,"11":1,"12":1}},"sosyal_bilimler_lisesi":{"Türk Dili ve Edebiyatı":{"9":5,"10":5,"11":5,"12":5},"Matematik":{"9":6,"10":6,"11":0,"12":0},"Fizik":{"9":2,"10":2,"11":0,"12":0},"Kimya":{"9":2,"10":2,"11":0,"12":0},"Biyoloji":{"9":2,"10":2,"11":0,"12":0},"Tarih":{"9":2,"10":2,"11":4,"12":0},"T.C. İnkılap Tarihi ve Atatürkçülük":{"9":0,"10":0,"11":0,"12":2},"Coğrafya":{"9":2,"10":2,"11":4,"12":0},"Felsefe":{"9":0,"10":0,"11":4,"12":0},"Din Kültürü ve Ahlak Bilgisi":{"9":2,"10":2,"11":2,"12":2},"Birinci Yabancı Dil":{"9":4,"10":4,"11":4,"12":4},"İkinci Yabancı Dil":{"9":2,"10":2,"11":2,"12":2},"Beden Eğitimi ve Spor":{"9":2,"10":0,"11":0,"12":0},"Rehberlik ve Yönlendirme":{"9":0,"10":0,"11":1,"12":1}},"meslek_lisesi":{"Türk Dili ve Edebiyatı":{"9":5,"10":5,"11":5,"12":5},"Matematik":{"9":6,"10":5,"11":0,"12":0},"Fizik":{"9":2,"10":2,"11":0,"12":0},"Kimya":{"9":2,"10":2,"11":0,"12":0},"Biyoloji":{"9":2,"10":2,"11":0,"12":0},"Tarih":{"9":2,"10":2,"11":0,"12":0},"T.C. İnkılap Tarihi ve Atatürkçülük":{"9":0,"10":0,"11":0,"12":2},"Coğrafya":{"9":2,"10":2,"11":0,"12":0},"Din Kültürü ve Ahlak Bilgisi":{"9":2,"10":2,"11":2,"12":2},"Birinci Yabancı Dil":{"9":4,"10":2,"11":2,"12":2},"Beden Eğitimi ve Spor":{"9":2,"10":0,"11":0,"12":0},"Mesleki Gelişim Atölyesi":{"9":7,"10":0,"11":0,"12":0},"Alan/Dal Dersleri":{"9":0,"10":14,"11":24,"12":24},"Rehberlik ve Yönlendirme":{"9":0,"10":0,"11":1,"12":1}}},"secmeliGruplar":{"İnsan, Toplum ve Bilim":["Matematik ve Bilim Uygulamaları","Okuma Becerileri","Yazarlık ve Yazma Becerileri","Yaşayan Diller ve Lehçeler","Yabancı Dil","Çevre Eğitimi ve İklim Değişikliği","Şehrimiz","Hukuk ve Adalet","Düşünme Eğitimi","Robotik Kodlama","Yapay Zeka Uygulamaları","Proje Tasarımı ve Uygulamaları","Okul Temelli Sosyal Sorumluluk Çalışmaları","Medya Okuryazarlığı","Afet Bilinci","Temel Yaşam Becerileri","Türk Sosyal Hayatında Aile"],"Din, Ahlak ve Değer":["Kur'an-ı Kerim","Peygamberimizin Hayatı","Temel Dinî Bilgiler","Kültür ve Medeniyetimize Yön Verenler","Ahlak ve Vatandaşlık Eğitimi","Görgü Kuralları ve Nezaket"],"Kültür, Sanat ve Spor":["Müzik","Spor ve Fizikî Etkinlikler","Oyun ve Oyun Etkinlikleri","Dijital Sanatlar","Masal ve Destanlarımız","Geleneksel Sanatlar","Halk Oyunları"]},"notlar":["Ortaokulda 3 seçmeli gruptan (İnsan-Toplum-Bilim, Din-Ahlak-Değer, Kültür-Sanat-Spor) her birinden her yıl en az 1 ders seçilmelidir.","5-7. sınıflarda 5 saat, 8. sınıfta 6 saat seçmeli ders saati ayrılır (toplam 6 saat seçmeli).","Rehberlik ve Yönlendirme dersi tüm alan öğretmenlerince okutulur, ayrı saat sayılmaz.","Yabancı dil olarak Bakanlar Kurulu kararı ile kabul edilen diller okutulur.","Görsel Sanatlar, Müzik, Spor dersleri seçmeli grupta 2 veya 4 saat seçilebilir."]};
+  var KEY_PROFILE = "okulpro_school_profile";
+
+  function getProfile() {
+    try { var raw = localStorage.getItem(KEY_PROFILE); return raw ? JSON.parse(raw) : null; }
+    catch(_) { return null; }
+  }
+  function setProfile(p) {
+    try { localStorage.setItem(KEY_PROFILE, JSON.stringify(p)); } catch(_) {}
+  }
+  window.__opGetSchoolProfile = getProfile;
+  window.__opGetTTK = function(){ return TTK; };
+
+  /* Okul türüne göre zorunlu dersler — artık her tür kendi verisi */
+  function getMandatoryForType(typeKey) {
+    return TTK.zorunluDersler[typeKey] || {};
+  }
+  window.__opGetMandatory = getMandatoryForType;
+
+  /* ─────────────────── MODAL ─────────────────── */
+  function openProfileModal() {
+    if (document.getElementById("op-profile-modal")) return;
+    var profile = getProfile() || { type: "", name: "", grades: [] };
+
+    var overlay = document.createElement("div");
+    overlay.id = "op-profile-modal";
+    overlay.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,0.6);backdrop-filter:blur(6px);z-index:99998;display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;animation:opFadeIn 0.2s ease;font-family:inherit;";
+    overlay.innerHTML = renderModalContent(profile);
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener("click", function(e){ if (e.target === overlay) closeModal(); });
+    bindModalEvents(overlay, profile);
+  }
+
+  function closeModal() {
+    var m = document.getElementById("op-profile-modal");
+    if (m) m.remove();
+  }
+  window.__opCloseProfileModal = closeModal;
+
+  function renderModalContent(profile) {
+    var types = TTK.schoolTypes;
+    /* Kademe başlıklarıyla grupla */
+    var kademeler = {
+      ilkogretim: { label: "İlköğretim", types: [] },
+      ortaokul: { label: "Ortaokul", types: [] },
+      ortaogretim: { label: "Lise (Ortaöğretim)", types: [] }
+    };
+    Object.entries(types).forEach(function(entry){
+      var key = entry[0], t = entry[1];
+      var k = t.kademe || "ortaogretim";
+      if (kademeler[k]) kademeler[k].types.push({ key: key, info: t });
+    });
+
+    var typeGroupsHtml = Object.entries(kademeler).map(function(kEntry){
+      var kData = kEntry[1];
+      if (!kData.types.length) return "";
+      var buttons = kData.types.map(function(tt){
+        var selected = profile.type === tt.key;
+        return '<button data-op-profile-type="' + tt.key + '" style="' +
+          'padding:11px 12px;border-radius:11px;cursor:pointer;transition:all .2s ease;font-family:inherit;text-align:left;flex:1;min-width:130px;' +
+          (selected
+            ? 'background:linear-gradient(135deg, #0f172a, #1e293b);color:#fff;border:2px solid #0f172a;box-shadow:0 6px 16px rgba(15,23,42,0.3);'
+            : 'background:#fff;color:#0f172a;border:2px solid #e2e8f0;') + '">' +
+          '<div style="font-weight:800;font-size:13px;margin-bottom:2px;">' + tt.info.label + '</div>' +
+          '<div style="font-size:10px;opacity:' + (selected ? '0.8' : '0.5') + ';">' + tt.info.grades[0] + '-' + tt.info.grades[tt.info.grades.length-1] + '. sınıf</div>' +
+          '</button>';
+      }).join('');
+      return '<div style="margin-bottom:12px;">' +
+        '<div style="font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">' + kData.label + '</div>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;">' + buttons + '</div>' +
+        '</div>';
+    }).join('');
+
+    var mandatorySection = profile.type ? renderMandatoryTable(profile.type) : "";
+
+    return '<div style="background:#fff;border-radius:20px;max-width:820px;width:100%;box-shadow:0 24px 64px -12px rgba(15,23,42,0.4);overflow:hidden;animation:opSlideUp 0.3s cubic-bezier(0.2,0.65,0.3,1);">' +
+      '<div style="background:linear-gradient(135deg, #0f172a, #1e293b);padding:20px 24px;color:#fff;display:flex;align-items:center;justify-content:space-between;">' +
+        '<div style="display:flex;align-items:center;gap:12px;">' +
+          '<div style="width:40px;height:40px;border-radius:11px;background:rgba(251,191,36,0.2);display:flex;align-items:center;justify-content:center;font-size:20px;">🏫</div>' +
+          '<div>' +
+            '<div style="font-weight:900;font-size:18px;letter-spacing:-0.02em;">Okul Profili</div>' +
+            '<div style="font-size:11px;opacity:0.7;">TTK ' + TTK.version + ' müfredatı</div>' +
+          '</div>' +
+        '</div>' +
+        '<button id="op-profile-close" style="width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,0.1);color:#fff;border:none;cursor:pointer;font-size:16px;">✕</button>' +
+      '</div>' +
+      '<div style="padding:24px;max-height:calc(100vh - 200px);overflow-y:auto;">' +
+        '<div style="margin-bottom:20px;">' +
+          '<label style="display:block;font-size:12px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Okul Adı</label>' +
+          '<input id="op-profile-name" type="text" value="' + (profile.name || "") + '" placeholder="Örn: Gazi Ortaokulu" ' +
+            'style="width:100%;padding:11px 14px;border:2px solid #e2e8f0;border-radius:11px;font-size:14px;font-weight:600;font-family:inherit;outline:none;box-sizing:border-box;" />' +
+        '</div>' +
+        '<div style="margin-bottom:20px;">' +
+          '<label style="display:block;font-size:12px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">Okul Türü</label>' +
+          typeGroupsHtml +
+        '</div>' +
+        '<div id="op-mandatory-section">' + mandatorySection + '</div>' +
+      '</div>' +
+      '<div style="padding:16px 24px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;gap:8px;background:#fafafa;">' +
+        '<button id="op-profile-cancel" style="padding:10px 18px;border-radius:11px;background:#fff;color:#64748b;border:1px solid #e2e8f0;cursor:pointer;font-weight:700;font-size:13px;font-family:inherit;">İptal</button>' +
+        '<button id="op-profile-save" style="padding:10px 20px;border-radius:11px;background:linear-gradient(135deg, #0f172a, #1e293b);color:#fff;border:none;cursor:pointer;font-weight:800;font-size:13px;font-family:inherit;box-shadow:0 4px 12px rgba(15,23,42,0.3);">Kaydet</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function renderMandatoryTable(typeKey) {
+    var mandatory = getMandatoryForType(typeKey);
+    var typeInfo = TTK.schoolTypes[typeKey];
+    if (!typeInfo || !Object.keys(mandatory).length) return "";
+    var grades = typeInfo.grades;
+
+    var headerCells = '<th style="text-align:left;padding:8px 10px;font-size:11px;font-weight:800;color:#fff;">Ders</th>';
+    grades.forEach(function(g){
+      headerCells += '<th style="text-align:center;padding:8px 6px;font-size:11px;font-weight:800;color:#fff;min-width:36px;">' + g + '</th>';
+    });
+
+    var rows = "";
+    Object.entries(mandatory).forEach(function(entry){
+      var ders = entry[0], saatler = entry[1];
+      var hasAny = grades.some(function(g){ return (saatler[g] || 0) > 0; });
+      if (!hasAny) return;
+      var cells = '<td style="padding:7px 10px;font-size:12px;font-weight:600;color:#0f172a;">' + ders + '</td>';
+      grades.forEach(function(g){
+        var s = saatler[g] || 0;
+        cells += '<td style="text-align:center;padding:7px 6px;font-size:12px;font-weight:' + (s > 0 ? '800' : '400') + ';color:' + (s > 0 ? '#0f172a' : '#cbd5e1') + ';">' + (s > 0 ? s : '–') + '</td>';
+      });
+      rows += '<tr style="border-top:1px solid #f1f5f9;">' + cells + '</tr>';
+    });
+
+    var totalCells = '<td style="padding:8px 10px;font-size:12px;font-weight:900;color:#0f172a;">ZORUNLU TOPLAM</td>';
+    grades.forEach(function(g){
+      var total = 0;
+      Object.values(mandatory).forEach(function(s){ total += s[g] || 0; });
+      totalCells += '<td style="text-align:center;padding:8px 6px;font-size:12px;font-weight:900;color:#b45309;">' + total + '</td>';
+    });
+
+    var electiveInfo = "";
+    if (typeInfo.hasElective) {
+      var noteText = typeInfo.hasAlan
+        ? "11-12. sınıflarda alan dersleri (Sayısal/Sözel/Eşit Ağırlık) seçmeli olarak eklenir."
+        : (typeInfo.hasMeslek ? "Meslek dersleri alana göre değişir, alan/dal seçimine bağlıdır." : "Her seçmeli gruptan en az 1 ders seçilmelidir.");
+      electiveInfo = '<div style="margin-top:14px;padding:12px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:11px;">' +
+        '<div style="font-weight:800;font-size:12px;color:#1e3a8a;margin-bottom:4px;">📚 Seçmeli / Alan Dersleri</div>' +
+        '<div style="font-size:11px;color:#3b82f6;">' + noteText + '</div>' +
+      '</div>';
+    }
+
+    return '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:16px;">' +
+      '<div style="font-weight:800;font-size:13px;color:#0f172a;margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+        '<span style="font-size:16px;">📋</span> ' + typeInfo.label + ' — Zorunlu Dersler' +
+        '<span style="font-size:10px;font-weight:700;color:#64748b;background:#e2e8f0;padding:3px 8px;border-radius:999px;margin-left:auto;">TTK ' + TTK.version + '</span>' +
+      '</div>' +
+      '<div style="overflow-x:auto;">' +
+        '<table style="width:100%;border-collapse:collapse;">' +
+          '<thead><tr style="background:#0f172a;">' + headerCells + '</tr></thead>' +
+          '<tbody>' + rows + '<tr style="border-top:2px solid #0f172a;background:#fffbeb;">' + totalCells + '</tr></tbody>' +
+        '</table>' +
+      '</div>' +
+      electiveInfo +
+    '</div>';
+  }
+
+  function bindModalEvents(overlay, profile) {
+    var localProfile = JSON.parse(JSON.stringify(profile));
+
+    function rebind() {
+      var section = overlay.querySelector("#op-mandatory-section");
+      if (section) section.innerHTML = localProfile.type ? renderMandatoryTable(localProfile.type) : "";
+      overlay.querySelectorAll("[data-op-profile-type]").forEach(function(btn){
+        var key = btn.getAttribute("data-op-profile-type");
+        var sel = localProfile.type === key;
+        btn.style.background = sel ? "linear-gradient(135deg, #0f172a, #1e293b)" : "#fff";
+        btn.style.color = sel ? "#fff" : "#0f172a";
+        btn.style.border = "2px solid " + (sel ? "#0f172a" : "#e2e8f0");
+        btn.style.boxShadow = sel ? "0 6px 16px rgba(15,23,42,0.3)" : "none";
+        var sub = btn.querySelector("div:last-child");
+        if (sub) sub.style.opacity = sel ? "0.8" : "0.5";
+      });
+    }
+
+    overlay.querySelectorAll("[data-op-profile-type]").forEach(function(btn){
+      btn.onclick = function(){ localProfile.type = btn.getAttribute("data-op-profile-type"); rebind(); };
+    });
+
+    var closeBtn = overlay.querySelector("#op-profile-close");
+    if (closeBtn) closeBtn.onclick = closeModal;
+    var cancelBtn = overlay.querySelector("#op-profile-cancel");
+    if (cancelBtn) cancelBtn.onclick = closeModal;
+
+    var saveBtn = overlay.querySelector("#op-profile-save");
+    if (saveBtn) saveBtn.onclick = function(){
+      var nameInput = overlay.querySelector("#op-profile-name");
+      localProfile.name = nameInput ? nameInput.value.trim() : "";
+      if (!localProfile.type) { alert("Lütfen okul türü seçin."); return; }
+      setProfile(localProfile);
+      try {
+        var data = JSON.parse(localStorage.getItem("okulpro_veri") || "{}");
+        if (localProfile.name) data.school = localProfile.name;
+        localStorage.setItem("okulpro_veri", JSON.stringify(data));
+      } catch(_) {}
+      closeModal();
+      showToast("✓ Okul profili kaydedildi: " + (localProfile.name || TTK.schoolTypes[localProfile.type].label));
+      /* Menü butonunu yenile */
+      var btn = document.getElementById("op-profile-menu-btn");
+      if (btn) { btn.remove(); injectMenuButton(); }
+    };
+  }
+
+  function showToast(msg) {
+    var toast = document.createElement("div");
+    toast.style.cssText = "position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:700;z-index:99999;box-shadow:0 8px 24px rgba(15,23,42,0.4);font-family:inherit;";
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(function(){ toast.style.opacity = "0"; toast.style.transition = "opacity 0.3s"; setTimeout(function(){ toast.remove(); }, 300); }, 2500);
+  }
+
+  window.__opOpenProfile = openProfileModal;
+
+  /* ─────────────────── MENÜ BUTONU ─────────────────── */
+  function injectMenuButton() {
+    if (document.getElementById("op-profile-menu-btn")) return;
+    var header = document.querySelector("header");
+    if (!header) return;
+
+    var refBtn = document.getElementById("op-nobet-btn");
+    if (!refBtn) {
+      var links = header.querySelectorAll('a[href="/"]');
+      for (var i = 0; i < links.length; i++) {
+        if ((links[i].textContent || "").toLowerCase().indexOf("ana sayfa") >= 0) { refBtn = links[i]; break; }
+      }
+    }
+    if (!refBtn) return;
+
+    var profile = getProfile();
+    var hasProfile = profile && profile.type;
+    var btn = document.createElement("button");
+    btn.id = "op-profile-menu-btn";
+    btn.title = hasProfile ? ("Okul: " + (profile.name || TTK.schoolTypes[profile.type].label) + " — değiştirmek için tıkla") : "Okul profilini ayarla";
+    btn.style.cssText = "display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:" +
+      (hasProfile ? "linear-gradient(135deg, #047857, #065f46)" : "#fff") + ";color:" +
+      (hasProfile ? "#fff" : "#0f172a") + ";border:1px solid " +
+      (hasProfile ? "#047857" : "#cbd5e1") +
+      ";border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s ease;white-space:nowrap;margin-left:8px;font-family:inherit;box-shadow:0 2px 8px rgba(15,23,42,0.08);";
+    btn.innerHTML = '🏫 Okul Profili' + (hasProfile ? ' <span style="font-size:10px;opacity:0.8;">✓</span>' : '');
+    btn.onmouseenter = function(){ btn.style.transform = "translateY(-1px)"; };
+    btn.onmouseleave = function(){ btn.style.transform = "translateY(0)"; };
+    btn.onclick = function(e){ e.preventDefault(); openProfileModal(); };
+
+    if (refBtn.parentNode) refBtn.parentNode.insertBefore(btn, refBtn.nextSibling);
+  }
+
+  function injectStyles() {
+    if (document.getElementById("op-profile-styles")) return;
+    var s = document.createElement("style");
+    s.id = "op-profile-styles";
+    s.textContent = "@keyframes opFadeIn { from { opacity: 0; } to { opacity: 1; } } @keyframes opSlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } } #op-profile-name:focus { border-color: #0f172a !important; }";
+    document.head.appendChild(s);
+  }
+
+  var pending = null;
+  function scheduleInject() {
+    if (pending) clearTimeout(pending);
+    pending = setTimeout(function(){
+      pending = null;
+      try { injectMenuButton(); } catch(e) { console.error("[OkulProfili]", e); }
+    }, 400);
+  }
+
+  function watch() {
+    injectStyles();
+    scheduleInject();
+    var obs = new MutationObserver(function(mutations){
+      for (var i = 0; i < mutations.length; i++) {
+        var t = mutations[i].target;
+        if (t && t.id && t.id.indexOf("op-") === 0) return;
+        if (t && t.closest && t.closest("[id^='op-']")) return;
+      }
+      scheduleInject();
+    });
+    if (document.body) obs.observe(document.body, { childList: true, subtree: true });
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", watch);
+  else watch();
+})();
+</script>
+
 </head>
 <body>
   <div id="root"></div>
