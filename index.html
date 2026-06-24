@@ -2077,91 +2077,9 @@ Error generating stack: `+a.message+`
      PROGRAM > ÖĞRETMEN VIEW — Her öğretmen kartına "Programı Kilitle" butonu
      ═══════════════════════════════════════════════════════════════════ */
   function refreshProgramViewLockBtns() {
-    if (!window.location.pathname.startsWith("/app")) return;
-    var data = getData();
-    if (!data || !data.teachers) return;
-    var locks = getLocks();
-
-    /* Sayfada "Program" başlığı + "Öğretmen" sub-tab aktif mi? */
-    /* Daha basit: tüm Yeniden Hazırla butonlarını bul, container'da öğretmen adı var mı kontrol */
-    var allBtns = document.querySelectorAll("button");
-    var processedBtns = [];
-
-    for (var i = 0; i < allBtns.length; i++) {
-      var btn = allBtns[i];
-      var txt = (btn.textContent || "").trim();
-      if (txt.indexOf("Yeniden Hazırla") < 0) continue;
-      processedBtns.push(btn);
-    }
-
-    /* En üstteki global Yeniden Hazırla butonunu hariç tut (saat/hafta kelimesi olmayan parent) */
-    processedBtns.forEach(function(btn){
-      /* Bu butonun container'ında "saat/hafta" veya teacher info var mı? */
-      var container = btn.parentNode;
-      var depth = 0;
-      var isPerTeacherContext = false;
-      var matchedTeacher = null;
-      while (container && depth < 6) {
-        var ct = container.textContent || "";
-        if (ct.indexOf("saat/hafta") >= 0 || ct.indexOf("Kişisel Ayarlar") >= 0) {
-          isPerTeacherContext = true;
-          /* Hangi öğretmen? container'da bir öğretmen adı geçiyor mu? */
-          for (var k = 0; k < data.teachers.length; k++) {
-            if (ct.indexOf(data.teachers[k].name) >= 0) {
-              matchedTeacher = data.teachers[k];
-              break;
-            }
-          }
-          break;
-        }
-        container = container.parentNode;
-        depth++;
-      }
-      if (!isPerTeacherContext || !matchedTeacher) return;
-
-      /* Bu Yeniden Hazırla butonunun yanına lock butonu ekle — varsa state güncelle, yoksa oluştur */
-      var existingLockBtn = btn.parentNode && btn.parentNode.querySelector('[data-op-program-lock-tid="' + matchedTeacher.id + '"]');
-      var isLocked = locks.indexOf(matchedTeacher.id) >= 0;
-      var currentState = existingLockBtn && existingLockBtn.getAttribute("data-locked") === "1";
-
-      if (existingLockBtn && currentState === isLocked) return; /* zaten doğru */
-
-      if (existingLockBtn) {
-        /* sadece state güncelle */
-        existingLockBtn.setAttribute("data-locked", isLocked ? "1" : "0");
-        existingLockBtn.innerHTML = isLocked ? '🔒 Kilitli' : '🔓 Programı Kilitle';
-        existingLockBtn.style.background = isLocked ? "linear-gradient(135deg, #0f172a, #1e293b)" : "#fff";
-        existingLockBtn.style.color = isLocked ? "#fbbf24" : "#0f172a";
-        existingLockBtn.style.border = "2px solid " + (isLocked ? "#fbbf24" : "#cbd5e1");
-        existingLockBtn.title = isLocked
-          ? "Bu öğretmenin programı kilitli - 'Yeniden Hazırla'da slotları korunur. Tıkla: kilidi aç"
-          : "Bu öğretmenin mevcut programını kilitle - yeniden hazırlanırken değişmez";
-        return;
-      }
-
-      /* Yeni buton oluştur */
-      var newBtn = document.createElement("button");
-      newBtn.setAttribute("data-op-program-lock-tid", matchedTeacher.id);
-      newBtn.setAttribute("data-locked", isLocked ? "1" : "0");
-      newBtn.style.cssText = "display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;transition:all .2s ease;font-family:inherit;margin-right:8px;letter-spacing:-0.01em;" +
-        (isLocked
-          ? "background:linear-gradient(135deg, #0f172a, #1e293b);color:#fbbf24;border:2px solid #fbbf24;box-shadow:0 4px 10px rgba(15,23,42,0.3);"
-          : "background:#fff;color:#0f172a;border:2px solid #cbd5e1;");
-      newBtn.innerHTML = isLocked ? '🔒 Kilitli' : '🔓 Programı Kilitle';
-      newBtn.title = isLocked
-        ? "Bu öğretmenin programı kilitli - 'Yeniden Hazırla'da slotları korunur. Tıkla: kilidi aç"
-        : "Bu öğretmenin mevcut programını kilitle - yeniden hazırlanırken değişmez";
-      newBtn.onmouseenter = function(){ newBtn.style.transform = "translateY(-1px)"; };
-      newBtn.onmouseleave = function(){ newBtn.style.transform = "translateY(0)"; };
-      newBtn.onclick = function(e){
-        e.preventDefault();
-        e.stopPropagation();
-        window.__opToggleLock(matchedTeacher.id);
-      };
-
-      /* Yeniden Hazırla butonundan ÖNCE ekle */
-      btn.parentNode.insertBefore(newBtn, btn);
-    });
+    /* Program görünümüne kilit butonu eklenmiyor (kullanıcı istemedi).
+       Önceden eklenmiş program-lock butonlarını temizle. */
+    document.querySelectorAll("[data-op-program-lock-tid]").forEach(function(el){ el.remove(); });
   }
 
   /* ═══════════════════════════════════════════════════════════════════
