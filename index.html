@@ -1424,7 +1424,13 @@ function enhanceMainTeacherListWithLocks() {
         if (m.addedNodes.length === 0 && m.removedNodes.length === 0) continue;
         if (!allOurs) hasNonOurChange = true;
       }
-      if (hasNonOurChange) scheduleRefresh();
+      if (hasNonOurChange) {
+        /* "Öğretmenler" sayfasındaysa ve panel henüz yoksa HEMEN bas (gecikmesiz) */
+        if (isOnTeachersTab() && !document.getElementById("op-tab-bar")) {
+          try { refresh(); } catch(e) {}
+        }
+        scheduleRefresh();
+      }
     });
     if (document.body) obs.observe(document.body, { childList: true, subtree: true });
   }
@@ -2127,7 +2133,13 @@ function enhanceMainTeacherListWithLocks() {
         }
         if (!allOurs) hasNonOurChange = true;
       }
-      if (hasNonOurChange) scheduleRefresh();
+      if (hasNonOurChange) {
+        /* "Öğretmenler" sayfasındaysa ve panel henüz yoksa HEMEN bas (gecikmesiz) */
+        if (isOnTeachersTab() && !document.getElementById("op-tab-bar")) {
+          try { refresh(); } catch(e) {}
+        }
+        scheduleRefresh();
+      }
     });
     if (document.body) obs.observe(document.body, { childList: true, subtree: true });
   }
