@@ -1424,7 +1424,7 @@ function enhanceMainTeacherListWithLocks() {
         if (m.addedNodes.length === 0 && m.removedNodes.length === 0) continue;
         if (!allOurs) hasNonOurChange = true;
       }
-      if (hasNonOurChange) scheduleRefresh();
+      if (hasNonOurChange) scheduleRefresh(true);
     });
     if (document.body) obs.observe(document.body, { childList: true, subtree: true });
   }
@@ -2085,7 +2085,11 @@ function enhanceMainTeacherListWithLocks() {
   }
 
   var pending = null;
-  function scheduleRefresh() {
+  function scheduleRefresh(immediate) {
+    if (immediate) {
+      /* Anında çalıştır — sekme geçişi gecikmesiz olsun */
+      try { refresh(); refreshProgramViewLockBtns(); } catch(e) {}
+    }
     if (pending) clearTimeout(pending);
     pending = setTimeout(function(){
       pending = null;
@@ -2093,12 +2097,15 @@ function enhanceMainTeacherListWithLocks() {
         refresh();
         refreshProgramViewLockBtns();
       } catch(e) { console.error("[Panels] refresh hatası:", e); }
-    }, 400);
+    }, 120);
   }
 
   function watch() {
     injectStyles();
-    scheduleRefresh();
+    scheduleRefresh(true);
+    /* Sayfa geç yüklenirse diye birkaç kez daha dene */
+    setTimeout(function(){ scheduleRefresh(true); }, 300);
+    setTimeout(function(){ scheduleRefresh(true); }, 800);
     var obs = new MutationObserver(function(mutations){
       var hasNonOurChange = false;
       for (var i = 0; i < mutations.length && !hasNonOurChange; i++) {
