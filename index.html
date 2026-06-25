@@ -2098,7 +2098,10 @@ function enhanceMainTeacherListWithLocks() {
 
   function watch() {
     injectStyles();
-    scheduleRefresh();
+    /* İlk açılışta panel hemen gelsin diye sınırlı sayıda deneme (observer EKLEMEDEN) */
+    [0, 200, 500, 1000].forEach(function(delay){
+      setTimeout(function(){ try { refresh(); } catch(e) {} }, delay);
+    });
     var obs = new MutationObserver(function(mutations){
       var hasNonOurChange = false;
       for (var i = 0; i < mutations.length && !hasNonOurChange; i++) {
