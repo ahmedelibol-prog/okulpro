@@ -2450,6 +2450,144 @@ function enhanceMainTeacherListWithLocks() {
 })();
 </script>
 
+<style>
+/* ═══════════════════════════════════════════════════════════════════════
+   OkulPro — Mobil Uyumluluk Katmanı
+   ─────────────────────────────────────────────────────────────────────
+   Telefon ve tablet ekranlarında tüm özelliklerin kullanılabilmesi için.
+   Bundle'ın kendi stilini bozmaz — sadece küçük ekranlarda devreye girer.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ─── Genel: yatay taşmayı engelle ─── */
+@media (max-width: 768px) {
+  html, body { overflow-x: hidden; -webkit-text-size-adjust: 100%; }
+
+  /* Ana içerik dolgusunu küçült */
+  #root > div,
+  main, .op-main {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  /* Büyük başlıkları küçült (h1 36-42px -> mobilde makul) */
+  h1 { font-size: 26px !important; line-height: 1.2 !important; }
+
+  /* Sabit geniş kutuları esnet */
+  [style*="width:640px"],
+  [style*="width: 640px"],
+  [style*="width:300px"],
+  [style*="width:280px"] {
+    max-width: 100% !important;
+  }
+
+  /* Dev sayı gösterimleri (42px) küçülsün */
+  [style*="fontSize:42"],
+  [style*="font-size:42"] {
+    font-size: 32px !important;
+  }
+}
+
+/* ─── Ders Programı Grid'i: yatay kaydırma ─── */
+@media (max-width: 768px) {
+  /* Program tablosunu saran kutu yatay kaydırılabilir olsun */
+  .op-schedule-scroll,
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+  }
+  /* Program tablosu minimum genişlik korusun (okunabilir kalsın) */
+  table {
+    min-width: 560px;
+  }
+  /* Kaydırma ipucu için ince gölge */
+  table { scrollbar-width: thin; }
+}
+
+/* ─── Sekme Barı (4 sekme): mobilde yatay kaydır ─── */
+@media (max-width: 640px) {
+  #op-tab-bar {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap !important;
+    scrollbar-width: none;
+  }
+  #op-tab-bar::-webkit-scrollbar { display: none; }
+  #op-tab-bar > button {
+    flex-shrink: 0 !important;
+    font-size: 13px !important;
+    padding: 8px 12px !important;
+    white-space: nowrap;
+  }
+}
+
+/* ─── Isı Haritası & Müsaitlik Grid'i: yatay kaydır ─── */
+@media (max-width: 768px) {
+  #op-teacher-heatmap-panel,
+  #op-availability-panel,
+  #op-lock-panel {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* İçlerindeki grid'ler minimum genişlik korusun */
+  #op-teacher-heatmap-panel [style*="grid-template-columns"],
+  #op-teacher-heatmap-panel [style*="gridTemplateColumns"],
+  #op-availability-panel [style*="grid-template-columns"],
+  #op-availability-panel [style*="gridTemplateColumns"] {
+    min-width: 520px;
+  }
+}
+
+/* ─── Üst menü butonları (Ana Sayfa, Nöbet, Okul Profili): mobilde sarmalasın ─── */
+@media (max-width: 640px) {
+  .op-topbar,
+  [style*="justifyContent:space-between"][style*="flex"] {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+}
+
+/* ─── Dokunmatik hedef boyutu: butonlar parmakla basılabilir olsun ─── */
+@media (max-width: 768px) and (pointer: coarse) {
+  button {
+    min-height: 40px;
+  }
+  /* Küçük ikon butonları hariç tut (kilit, sil gibi) */
+  button[data-op-lockpanel-tid],
+  button[data-op-heat-lock-tid],
+  button[style*="width: 34px"],
+  button[style*="width:34px"] {
+    min-height: unset;
+  }
+}
+
+/* ─── Modal / Okul Profili penceresi: mobilde tam ekrana yakın ─── */
+@media (max-width: 640px) {
+  [style*="position:fixed"][style*="zIndex"] > div,
+  .op-modal-content {
+    max-width: 94vw !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+  }
+}
+
+/* ─── Kaydırma gölgesi ipucu (program tablosu sağa kaydırılabilir) ─── */
+@media (max-width: 768px) {
+  .op-scroll-hint {
+    position: relative;
+  }
+  .op-scroll-hint::after {
+    content: "";
+    position: absolute;
+    top: 0; right: 0; bottom: 0;
+    width: 24px;
+    background: linear-gradient(to right, transparent, rgba(15,23,42,0.06));
+    pointer-events: none;
+  }
+}
+</style>
+
 </head>
 <body>
   <div id="root"></div>
