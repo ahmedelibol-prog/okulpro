@@ -1479,6 +1479,9 @@ function enhanceMainTeacherListWithLocks() {
     refresh();
   }
   window.__opSetTab = setActiveTab;
+  window.__opBuildLockPanel = function(){ try { return buildLockPanel(); } catch(e){ console.error(e); return null; } };
+  window.__opBuildLoadHeatMap = function(){ try { return buildLoadHeatMap(); } catch(e){ console.error(e); return null; } };
+  window.__opBuildAvailabilityPanel = function(){ try { return buildAvailabilityPanel(); } catch(e){ console.error(e); return null; } };
 
   function getLocks() {
     try { var raw = localStorage.getItem(KEY_LOCKS); return raw ? JSON.parse(raw) : []; }
@@ -1959,101 +1962,15 @@ function enhanceMainTeacherListWithLocks() {
   }
 
   function refresh() {
-    if (!isOnTeachersTab()) {
-      /* Tüm panelleri kaldır */
-      ["op-tab-bar", "op-teacher-heatmap-panel", "op-availability-panel"].forEach(function(id){
-        var el = document.getElementById(id);
-        if (el) el.remove();
-      });
-      /* Orijinal kartın görünürlüğünü iade et */
-      var prevHidden = document.querySelector("[data-op-list-hidden='1']");
-      if (prevHidden) {
-        prevHidden.style.display = "";
-        delete prevHidden.dataset.opListHidden;
-      }
-      return;
-    }
-
-    var listCard = findTeacherListCard();
-    if (!listCard || !listCard.parentNode) return;
-    var parent = listCard.parentNode;
-    var active = getActiveTab();
-    var hash = dataHash();
-
-    /* ─── 1) Tab bar ─── */
-    var existingBar = document.getElementById("op-tab-bar");
-    var existingActive = "";
-    if (existingBar) {
-      var activeBtn = existingBar.querySelector('button[style*="background:#fff"]');
-      if (activeBtn) existingActive = activeBtn.getAttribute("data-op-tab") || "";
-    }
-    if (!existingBar || existingActive !== active) {
-      if (existingBar) existingBar.remove();
-      var newBar = buildTabBar();
-      parent.insertBefore(newBar, listCard);
-    } else if (!existingBar.parentNode) {
-      parent.insertBefore(existingBar, listCard);
-    }
-
-    /* ─── 2) Orijinal liste göster/gizle ─── */
-    if (active === "list") {
-      listCard.style.display = "";
-      delete listCard.dataset.opListHidden;
-    } else {
-      listCard.style.display = "none";
-      listCard.dataset.opListHidden = "1";
-    }
-
-    /* ─── Lock paneli ─── */
-    var lockPanel = document.getElementById("op-lock-panel");
-    if (active === "lock") {
-      if (lockPanel && lockPanel.dataset.dataHash === hash) {
-        /* zaten doğru */
-      } else {
-        if (lockPanel) lockPanel.remove();
-        var newLock = buildLockPanel();
-        if (newLock) {
-          newLock.dataset.dataHash = hash;
-          parent.insertBefore(newLock, listCard);
-        }
-      }
-    } else {
-      if (lockPanel) lockPanel.remove();
-    }
-
-    /* ─── 3) Load Heat Map paneli ─── */
-    var loadPanel = document.getElementById("op-teacher-heatmap-panel");
-    if (active === "load") {
-      if (loadPanel && loadPanel.dataset.dataHash === hash) {
-        /* zaten doğru */
-      } else {
-        if (loadPanel) loadPanel.remove();
-        var newLoad = buildLoadHeatMap();
-        if (newLoad) {
-          newLoad.dataset.dataHash = hash;
-          parent.insertBefore(newLoad, listCard);
-        }
-      }
-    } else {
-      if (loadPanel) loadPanel.remove();
-    }
-
-    /* ─── 4) Availability paneli ─── */
-    var availPanel = document.getElementById("op-availability-panel");
-    if (active === "avail") {
-      if (availPanel && availPanel.dataset.dataHash === hash) {
-        /* zaten doğru */
-      } else {
-        if (availPanel) availPanel.remove();
-        var newAvail = buildAvailabilityPanel();
-        if (newAvail) {
-          newAvail.dataset.dataHash = hash;
-          parent.insertBefore(newAvail, listCard);
-        }
-      }
-    } else {
-      if (availPanel) availPanel.remove();
-    }
+    /* DEVRE DIŞI — sekme sistemi kaldırıldı, araçlar üst menüye taşındı.
+       Öğretmen listesine artık dokunulmuyor (hep orijinal haliyle açılır).
+       Eski kalıntıları temizle: */
+    ["op-tab-bar", "op-teacher-heatmap-panel", "op-availability-panel", "op-lock-panel"].forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.remove();
+    });
+    var prevHidden = document.querySelector("[data-op-list-hidden='1']");
+    if (prevHidden) { prevHidden.style.display = ""; delete prevHidden.dataset.opListHidden; }
   }
 
   /* ═══════════════════════════════════════════════════════════════════
@@ -2104,10 +2021,11 @@ function enhanceMainTeacherListWithLocks() {
 
   function watch() {
     injectStyles();
-    /* İlk açılışta panel hemen gelsin diye sınırlı sayıda deneme (observer EKLEMEDEN) */
-    [0, 100, 250, 500, 1000, 1800].forEach(function(delay){
+    /* Sekme sistemi kaldırıldı — sadece eski kalıntıları bir kez temizle, observer YOK */
+    [0, 500, 1500].forEach(function(delay){
       setTimeout(function(){ try { refresh(); } catch(e) {} }, delay);
     });
+    return; /* Observer başlatma — araçlar üst menüye taşındı */
     var obs = new MutationObserver(function(mutations){
       var hasNonOurChange = false;
       for (var i = 0; i < mutations.length && !hasNonOurChange; i++) {
@@ -2587,6 +2505,179 @@ function enhanceMainTeacherListWithLocks() {
   }
 }
 </style>
+
+<style>
+@keyframes opFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes opScaleIn { from { opacity: 0; transform: scale(0.96) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+</style>
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   OkulPro — Araç Menüsü (Kilit · Ders Yükü · Müsaitlik)
+   ─────────────────────────────────────────────────────────────────────
+   Kırılgan sekme sistemi yerine: üst menüde 3 buton + modal pencere.
+   Observer YOK — her sayfadan güvenilir şekilde açılır.
+   ═══════════════════════════════════════════════════════════════════════ */
+(function(){
+  var TOOLS = [
+    { id: "lock",  label: "Program Kilitle",  icon: "🔒", builder: "__opBuildLockPanel",         color: "#7c3aed" },
+    { id: "load",  label: "Ders Yükü",        icon: "🔥", builder: "__opBuildLoadHeatMap",        color: "#ea580c" },
+    { id: "avail", label: "Müsaitlik",        icon: "📅", builder: "__opBuildAvailabilityPanel",  color: "#0891b2" }
+  ];
+
+  /* ─── MODAL ─── */
+  function openModal(tool) {
+    closeModal();
+    var overlay = document.createElement("div");
+    overlay.id = "op-tool-modal";
+    overlay.style.cssText = "position:fixed;inset:0;z-index:9998;background:rgba(15,23,42,0.55);backdrop-filter:blur(4px);display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;animation:opFadeIn 0.15s ease;";
+    overlay.onclick = function(e){ if (e.target === overlay) closeModal(); };
+
+    var box = document.createElement("div");
+    box.style.cssText = "background:#fff;border-radius:18px;box-shadow:0 24px 64px -12px rgba(15,23,42,0.4);width:min(96vw,860px);max-height:88vh;overflow:hidden;display:flex;flex-direction:column;animation:opScaleIn 0.18s cubic-bezier(0.2,0.7,0.3,1);";
+    box.onclick = function(e){ e.stopPropagation(); };
+
+    /* Başlık */
+    var head = document.createElement("div");
+    head.style.cssText = "display:flex;align-items:center;gap:12px;padding:18px 22px;border-bottom:1px solid #f1f5f9;flex-shrink:0;";
+    head.innerHTML =
+      '<div style="width:38px;height:38px;border-radius:11px;background:' + tool.color + '18;display:flex;align-items:center;justify-content:center;font-size:19px;">' + tool.icon + '</div>' +
+      '<div style="flex:1;"><div style="font-size:16px;font-weight:800;color:#0f172a;letter-spacing:-0.02em;">' + tool.label + '</div></div>';
+    var closeBtn = document.createElement("button");
+    closeBtn.innerHTML = "✕";
+    closeBtn.title = "Kapat";
+    closeBtn.style.cssText = "width:34px;height:34px;border-radius:9px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:16px;cursor:pointer;flex-shrink:0;transition:all .15s;";
+    closeBtn.onmouseenter = function(){ closeBtn.style.background = "#fee2e2"; closeBtn.style.color = "#dc2626"; closeBtn.style.borderColor = "#fecaca"; };
+    closeBtn.onmouseleave = function(){ closeBtn.style.background = "#f8fafc"; closeBtn.style.color = "#64748b"; closeBtn.style.borderColor = "#e2e8f0"; };
+    closeBtn.onclick = closeModal;
+    head.appendChild(closeBtn);
+    box.appendChild(head);
+
+    /* İçerik */
+    var body = document.createElement("div");
+    body.id = "op-tool-modal-body";
+    body.style.cssText = "padding:20px 22px;overflow-y:auto;flex:1;";
+    box.appendChild(body);
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    /* Paneli oluştur ve içine koy */
+    try {
+      var builder = window[tool.builder];
+      if (typeof builder === "function") {
+        var panel = builder();
+        if (panel) {
+          /* Panel'in kendi id'sini temizle (çakışma olmasın) */
+          body.appendChild(panel);
+        } else {
+          body.innerHTML = '<div style="padding:40px 20px;text-align:center;color:#94a3b8;font-size:14px;">Önce öğretmen, sınıf ve ders bilgilerini girmelisiniz.</div>';
+        }
+      } else {
+        body.innerHTML = '<div style="padding:40px 20px;text-align:center;color:#94a3b8;">Araç yüklenemedi.</div>';
+      }
+    } catch(e) {
+      console.error("[Araç Menüsü] panel hatası:", e);
+      body.innerHTML = '<div style="padding:40px 20px;text-align:center;color:#dc2626;">Bir hata oluştu.</div>';
+    }
+
+    /* ESC ile kapat */
+    document.addEventListener("keydown", escHandler);
+  }
+
+  function escHandler(e){ if (e.key === "Escape") closeModal(); }
+  function closeModal() {
+    var m = document.getElementById("op-tool-modal");
+    if (m) m.remove();
+    document.removeEventListener("keydown", escHandler);
+  }
+  window.__opOpenTool = openModal;
+  window.__opCloseTool = closeModal;
+
+  /* ─── ÜST MENÜ BUTONLARI ─── */
+  function addToolbarButtons() {
+    if (!window.location.pathname.startsWith("/app")) return;
+    if (document.getElementById("op-tools-group")) return;
+
+    var header = document.querySelector("header");
+    if (!header) return;
+
+    /* Nöbet butonunun yanına eklemek için referans bul */
+    var nobetBtn = document.getElementById("op-nobet-btn");
+    var anchor = nobetBtn;
+    if (!anchor) {
+      /* Nöbet yoksa Ana Sayfa linkini bul */
+      var links = header.querySelectorAll('a[href="/"]');
+      for (var i = 0; i < links.length; i++) {
+        if ((links[i].textContent || "").toLowerCase().indexOf("ana sayfa") !== -1) { anchor = links[i]; break; }
+      }
+    }
+    if (!anchor) return;
+
+    /* Buton grubu container */
+    var group = document.createElement("div");
+    group.id = "op-tools-group";
+    group.style.cssText = "display:inline-flex;align-items:center;gap:6px;margin-left:8px;flex-wrap:wrap;";
+
+    TOOLS.forEach(function(tool){
+      var btn = document.createElement("button");
+      btn.id = "op-tool-btn-" + tool.id;
+      btn.title = tool.label;
+      btn.style.cssText = [
+        "display:inline-flex","align-items:center","gap:6px",
+        "padding:7px 12px","background:#fff","color:#334155",
+        "border:1px solid #e2e8f0","border-radius:10px","cursor:pointer",
+        "font-size:13px","font-weight:700","font-family:inherit",
+        "letter-spacing:-0.01em","transition:all .15s ease","white-space:nowrap",
+        "box-shadow:0 1px 2px rgba(15,23,42,0.04)"
+      ].join(";");
+      btn.innerHTML = '<span style="font-size:14px;">' + tool.icon + '</span> ' + tool.label;
+      btn.onmouseenter = function(){
+        btn.style.borderColor = tool.color;
+        btn.style.color = tool.color;
+        btn.style.transform = "translateY(-1px)";
+        btn.style.boxShadow = "0 4px 12px -2px " + tool.color + "33";
+      };
+      btn.onmouseleave = function(){
+        btn.style.borderColor = "#e2e8f0";
+        btn.style.color = "#334155";
+        btn.style.transform = "none";
+        btn.style.boxShadow = "0 1px 2px rgba(15,23,42,0.04)";
+      };
+      btn.onclick = function(){ openModal(tool); };
+      group.appendChild(btn);
+    });
+
+    /* Anchor'dan sonra ekle */
+    if (anchor.parentNode) {
+      anchor.parentNode.insertBefore(group, anchor.nextSibling);
+    }
+  }
+
+  /* İlk yükleme + sayfa değişimlerinde birkaç kez dene (sınırlı, observer YOK) */
+  function tryAdd() {
+    [0, 200, 500, 1000, 1800, 3000].forEach(function(delay){
+      setTimeout(function(){ try { addToolbarButtons(); } catch(e) {} }, delay);
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", tryAdd);
+  } else {
+    tryAdd();
+  }
+  /* SPA navigasyonu için: URL değişimini yakala (hafif, observer değil) */
+  var lastPath = window.location.pathname;
+  setInterval(function(){
+    if (window.location.pathname !== lastPath) {
+      lastPath = window.location.pathname;
+      tryAdd();
+    } else if (window.location.pathname.startsWith("/app") && !document.getElementById("op-tools-group")) {
+      /* Buton kaybolduysa geri ekle */
+      addToolbarButtons();
+    }
+  }, 1500);
+})();
+</script>
 
 </head>
 <body>
