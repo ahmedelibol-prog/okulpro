@@ -2653,29 +2653,184 @@ function enhanceMainTeacherListWithLocks() {
     }
   }
 
-  /* İlk yükleme + sayfa değişimlerinde birkaç kez dene (sınırlı, observer YOK) */
-  function tryAdd() {
-    [0, 200, 500, 1000, 1800, 3000].forEach(function(delay){
-      setTimeout(function(){ try { addToolbarButtons(); } catch(e) {} }, delay);
-    });
+  /* Üst menü butonları KALDIRILDI — araçlar artık öğretmen listesinde
+     her öğretmenin yanında ikon olarak çıkıyor (aşağıdaki ayrı script).
+     Modal sistemi (openModal / window.__opOpenTool) korunuyor. */
+  /* Varsa eski üst buton grubunu temizle */
+  setTimeout(function(){
+    var g = document.getElementById("op-tools-group");
+    if (g) g.remove();
+  }, 500);
+})();
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   OkulPro — Öğretmen Satırı Araç İkonları
+   ─────────────────────────────────────────────────────────────────────
+   Öğretmen listesinde her öğretmenin yanında 3 küçük ikon:
+   🔒 Kilit · 📅 Müsaitlik · 🔥 Ders Yükü
+   Tıklayınca ilgili araç modal olarak açılır (o öğretmen odaklı).
+   ═══════════════════════════════════════════════════════════════════════ */
+(function(){
+  if (!window.location.pathname.startsWith("/app")) {
+    /* /app dışındaysa sadece interval kur, orada da kontrol etsin */
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", tryAdd);
-  } else {
-    tryAdd();
-  }
-  /* SPA navigasyonu için: URL değişimini yakala (hafif, observer değil) */
-  var lastPath = window.location.pathname;
-  setInterval(function(){
-    if (window.location.pathname !== lastPath) {
-      lastPath = window.location.pathname;
-      tryAdd();
-    } else if (window.location.pathname.startsWith("/app") && !document.getElementById("op-tools-group")) {
-      /* Buton kaybolduysa geri ekle */
-      addToolbarButtons();
+  var ICONS = [
+    { id: "lock",  icon: "🔒", title: "Programı kilitle",       color: "#7c3aed", tool: "lock" },
+    { id: "avail", icon: "📅", title: "Müsait olmama saatleri", color: "#0891b2", tool: "avail" },
+    { id: "load",  icon: "🔥", title: "Ders yükü",              color: "#ea580c", tool: "load" }
+  ];
+
+  var TOOL_DEFS = {
+    lock:  { label: "Program Kilitle", icon: "🔒", builder: "__opBuildLockPanel",        color: "#7c3aed" },
+    avail: { label: "Müsaitlik",       icon: "📅", builder: "__opBuildAvailabilityPanel", color: "#0891b2" },
+    load:  { label: "Ders Yükü",       icon: "🔥", builder: "__opBuildLoadHeatMap",       color: "#ea580c" }
+  };
+
+  /* Öğretmen listesi görünümünde miyiz? */
+  function isOnTeachersTab() {
+    var divs = document.querySelectorAll("div");
+    for (var i = 0; i < divs.length; i++) {
+      if (divs[i].textContent === "Öğretmen Listesi") return true;
     }
-  }, 1500);
+    return false;
+  }
+
+  /* Bir öğretmen satırının kilitli olup olmadığını kontrol */
+  function isLocked(tId) {
+    try {
+      var raw = localStorage.getItem("okulpro_locked_teachers");
+      if (!raw) return false;
+      var arr = JSON.parse(raw);
+      return Array.isArray(arr) && arr.indexOf(tId) >= 0;
+    } catch(e) { return false; }
+  }
+
+  /* Öğretmen verilerini al */
+  function getTeachers() {
+    try {
+      var raw = localStorage.getItem("okulpro_veri");
+      if (!raw) return [];
+      var v = JSON.parse(raw);
+      return v.teachers || [];
+    } catch(e) { return []; }
+  }
+
+  /* Her öğretmen satırına ikonları ekle */
+  function enhance() {
+    if (!isOnTeachersTab()) return;
+
+    var teachers = getTeachers();
+    if (!teachers.length) return;
+
+    /* Öğretmen adının "→" ile biten tıklanabilir elementlerini bul */
+    var candidates = document.querySelectorAll("div, span, a, button");
+    for (var i = 0; i < candidates.length; i++) {
+      var el = candidates[i];
+      var txt = (el.textContent || "").trim();
+      /* "Ayşe Yılmaz →" formatı, sadece isim + ok */
+      if (!/→\s*$/.test(txt)) continue;
+      var nameOnly = txt.replace(/→\s*$/, "").trim();
+      if (nameOnly.length < 2 || nameOnly.length > 50) continue;
+
+      /* Bu isme karşılık gelen öğretmeni bul */
+      var teacher = null;
+      for (var t = 0; t < teachers.length; t++) {
+        if (teachers[t].name === nameOnly) { teacher = teachers[t]; break; }
+      }
+      if (!teacher) continue;
+
+      /* Satır container'ını bul (isim elementinin üst 2-3 seviyesi) */
+      var row = el;
+      var depth = 0;
+      while (row && depth < 4) {
+        /* Satır: hem ismi hem "saat" içeren container */
+        if (row.textContent && row.textContent.indexOf("saat") >= 0 && row.children && row.children.length >= 2) break;
+        row = row.parentElement;
+        depth++;
+      }
+      if (!row) continue;
+      if (row.querySelector("[data-op-row-tools]")) continue; /* zaten eklendi */
+
+      /* İkon grubu oluştur */
+      var group = document.createElement("div");
+      group.setAttribute("data-op-row-tools", teacher.id);
+      group.style.cssText = "display:inline-flex;align-items:center;gap:4px;margin-left:10px;flex-shrink:0;";
+
+      ICONS.forEach(function(ic){
+        var locked = ic.id === "lock" && isLocked(teacher.id);
+        var btn = document.createElement("button");
+        btn.setAttribute("data-op-row-tool-btn", ic.id + "-" + teacher.id);
+        btn.title = ic.title;
+        btn.style.cssText = [
+          "width:30px","height:30px","border-radius:8px","cursor:pointer",
+          "font-size:14px","display:inline-flex","align-items:center","justify-content:center",
+          "transition:all .15s ease","flex-shrink:0","padding:0",
+          locked
+            ? "background:" + ic.color + ";border:1px solid " + ic.color + ";box-shadow:0 2px 6px " + ic.color + "55;"
+            : "background:#f8fafc;border:1px solid #e2e8f0;"
+        ].join(";");
+        btn.innerHTML = ic.icon;
+        btn.onmouseenter = function(){
+          this.style.background = ic.color + "18";
+          this.style.borderColor = ic.color;
+          this.style.transform = "translateY(-1px)";
+        }.bind(btn);
+        btn.onmouseleave = (function(button, iconDef, tid){
+          return function(){
+            var lk = iconDef.id === "lock" && isLocked(tid);
+            if (lk) {
+              button.style.background = iconDef.color;
+              button.style.borderColor = iconDef.color;
+            } else {
+              button.style.background = "#f8fafc";
+              button.style.borderColor = "#e2e8f0";
+            }
+            button.style.transform = "none";
+          };
+        })(btn, ic, teacher.id);
+        btn.onclick = (function(iconDef, tid){
+          return function(e){
+            e.stopPropagation();
+            e.preventDefault();
+            if (iconDef.id === "lock") {
+              /* Kilit: direkt aç/kapa (modal değil) */
+              try {
+                if (window.__opToggleLock) window.__opToggleLock(tid);
+              } catch(err) {}
+              /* İkonu güncelle */
+              setTimeout(function(){
+                document.querySelectorAll("[data-op-row-tools]").forEach(function(g){ g.remove(); });
+                enhance();
+              }, 50);
+            } else {
+              /* Müsaitlik / Ders Yükü: modal aç */
+              if (window.__opOpenTool) {
+                window.__opOpenTool(TOOL_DEFS[iconDef.tool]);
+              }
+            }
+          };
+        })(ic, teacher.id);
+        group.appendChild(btn);
+      });
+
+      /* Satırın sonuna ekle */
+      row.appendChild(group);
+    }
+  }
+
+  /* Periyodik kontrol (observer YOK, hafif) */
+  function loop() {
+    try {
+      if (window.location.pathname.startsWith("/app")) enhance();
+    } catch(e) {}
+  }
+
+  /* İlk denemeler + periyodik */
+  [300, 700, 1200, 2000].forEach(function(d){ setTimeout(loop, d); });
+  setInterval(loop, 1200);
 })();
 </script>
 
