@@ -3,4 +3,4 @@ User-agent: *
 Allow: /
 
 # Sitemap
-Sitemap: https://okulpro.vercel.app/sitemap.xml
+Sitemap: https://okuldersdagitim.vercel.app/sitemap.xml
