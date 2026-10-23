@@ -3585,9 +3585,11 @@ function enhanceMainTeacherListWithLocks() {
   function exportExcel(){
     readHeaderInputs();
     var kurum = HDR.kurum || schoolName() || "";
-    var C = 26; /* A..Z */
+    var C = 26;
+    var PX = [31,177,190,158,53,57,103,49,40,96,96,49,51,48,45,50,63,40,46,55,59,40,56,50,124,237];
+    var colgroup = "<colgroup>"+PX.map(function(w){return "<col width='"+w+"'>";}).join("")+"</colgroup>";
     function tr(cells){ return "<tr>"+cells+"</tr>"; }
-    function full(txt, align, bold){ return '<td colspan="'+C+'" style="text-align:'+(align||"left")+';'+(bold?"font-weight:bold;":"")+'border:none">'+txt+'</td>'; }
+    function full(txt, align, bold){ return '<td colspan="'+C+'" style="text-align:'+(align||"left")+';'+(bold?"font-weight:bold;":"")+'border:none;mso-number-format:\'\\@\'">'+txt+'</td>'; }
     function blank(){ return tr('<td colspan="'+C+'" style="border:none"></td>'); }
 
     /* Antet */
@@ -3611,30 +3613,56 @@ function enhanceMainTeacherListWithLocks() {
       + tr(full(esc(HDR.yil)+" EĞİTİM ÖĞRETİM YILI EK DERS ÜCRET ONAYI ("+esc(HDR.donem)+")","center",true))
       + tr('<td colspan="'+C+'" style="border:none;font-weight:bold">KURUMU: '+esc(kurum)+'</td>');
 
-    /* Sütun başlıkları */
-    var H = [
-      "SIRA NO","ÖĞRETMENİN ADI VE SOYADI","ATAMA BRANŞI","Aylık Karş. Dersin Adı",
-      "1-Aylık Karşılığı Ders (Mad.5)","2-Alanında Ek Ders (Mad.6)","Dışında Dersin Adı","3-Alan/Branş Dışı Ek Ders",
-      "4-Destek Eğitim/Evde Eğitim","5-Yönetim Görevi (Mad.10)","6-Sosyal-Kişilik (Mad.6-5)",
-      "7-Mad.8-1-a-6","8-Mad.8-1-b-3","9-Nöbet (Toplu Söz.)","10-Belleticilik (Mad.13)",
-      "11-Egzersiz (Mad.17)","12-Diğer / 7769 K.","13-İşletmelerde Mes.Eğt.","14-Planlama-Bakım (Mad.6-4)",
-      "DYK/İYEP Hft.içi","DYK/İYEP Hft.sonu","15-Hazırlık-Planlama (Mad.11)",
-      "FİİLİ TOPLAM DERS","TOPLAM EK DERS","Başlama Tarihi","AÇIKLAMA"
-    ];
-    var hdrRow = "<tr style='background:#dbeafe;font-weight:bold'>" + H.map(function(h){
-      return "<td style='text-align:center;font-size:9px'>"+h+"</td>";
-    }).join("") + "</tr>";
+    /* ── Başlık: dik (90°) ve yatay, 2 kademeli birleşik ── */
+    var vS = "mso-rotate:90;text-align:center;vertical-align:bottom;font-size:9px;font-weight:bold;background:#dbeafe";
+    var hS = "text-align:center;vertical-align:middle;font-size:9px;font-weight:bold;background:#dbeafe";
+    function vth(t){ return "<td rowspan='2' style='"+vS+"'>"+t+"</td>"; }
+    function hth(t,rs,cs){ return "<td "+(rs?"rowspan='"+rs+"' ":"")+(cs?"colspan='"+cs+"' ":"")+"style='"+hS+"'>"+t+"</td>"; }
+    function vtd(t){ return "<td style='"+vS+"'>"+t+"</td>"; }
+    function htd(t){ return "<td style='"+hS+"'>"+t+"</td>"; }
 
-    /* Veri satırları */
+    var row1 = "<tr style='height:26px'>"
+      + vth("SIRA NO")
+      + hth("ÖĞRETMENİN ADI VE SOYADI",2)
+      + hth("ATAMA BRANŞI",2)
+      + hth("AYLIK KARŞILIĞI DERS GÖREVİ",1,3)
+      + hth("ALAN/BRANŞ DIŞINDA EK DERS GÖREVİ",1,2)
+      + vth("4-Destek Eğitim Odası / Evde Eğitim Hiz.")
+      + vth("5-Ders Niteliğinde Yönetim Görevi (Mad.10)")
+      + vth("6-Öğrenci Sosyal ve Kişilik Hiz. (Mad.6-5)")
+      + vth("7-Madde.8-(1)-a-6")
+      + vth("8-Madde.8-(1)-b-3")
+      + vth("9-Nöbet Görevi (Toplu Sözleşme Mad.22)")
+      + vth("10-Belleticilik Görevi (Mad.13)")
+      + vth("11-Ders Dışı Eğitim Çalışmaları / Egzersiz (Mad.17)")
+      + vth("12-Diğer Ek Ders Görevleri / 7769 s. Cumhurbaşkanlığı K.")
+      + vth("13-İşletmelerde Meslek Eğitimi (Mad.15)")
+      + vth("14-Planlama ve Bakım Onarım Giderleri (Mad.6-4)")
+      + hth("DYK ve İYEP",1,2)
+      + vth("15-Hazırlık ve Planlama Görevi (Mad.11)")
+      + vth("FİİLİ OLARAK GİRİLEN TOPLAM DERS SAATİ")
+      + vth("TOPLAM EK DERS SAATİ TOPLAMI")
+      + hth("Dersi Okutmaya Başladığı Tarih",2)
+      + hth("AÇIKLAMA",2)
+      + "</tr>";
+    var row2 = "<tr style='height:200px'>"
+      + htd("DERSİN ADI")
+      + vtd("1-Aylık Karşılığı Ders Görevi (Mad.5)")
+      + vtd("2-Alanında/Branşında Ek Ders Görevi (Mad.6)")
+      + htd("DERSİN ADI")
+      + vtd("3-Alan/Branş Dışında Ek Ders Görevi")
+      + vtd("Haftaiçi")
+      + vtd("Haftasonu")
+      + "</tr>";
+
+    /* Veri satırları (A..Z) */
     function cell(v,align){ return "<td style='text-align:"+(align||"center")+";font-size:10px'>"+(v===""||v==null?"":v)+"</td>"; }
     var body = ROWS.map(function(r,i){
-      var cols = [
-        i+1, esc(r.name), esc(r.branch), esc(r.gorev||r.branch),
+      var cols = [ i+1, esc(r.name), esc(r.branch), esc(r.gorev||r.branch),
         r.E, r.F, "", "", "", "", r.K, "", "", r.N, "", "", r.Q, "", "", "", "", r.V,
-        r.W, r.X, esc(r.Y), esc(r.Z)
-      ];
+        r.W, r.X, esc(r.Y), esc(r.Z) ];
       return "<tr>"+cols.map(function(v,ci){
-        return cell(v, ci===1||ci===2||ci===3||ci===25 ? "left" : "center");
+        return cell(v, (ci===1||ci===2||ci===3||ci===25) ? "left" : "center");
       }).join("")+"</tr>";
     }).join("");
 
@@ -3645,7 +3673,7 @@ function enhanceMainTeacherListWithLocks() {
       + new Array(20).join("<td></td>")
       + "<td style='text-align:center'>"+sW+"</td><td style='text-align:center'>"+sX+"</td><td></td><td></td></tr>";
 
-    /* Kaymakamlık OLUR bölümü */
+    /* Kaymakamlık OLUR */
     var footer =
       blank()+blank()
       + tr('<td colspan="4" style="border:none"></td><td colspan="14" style="border:none;text-align:center;font-weight:bold">T.C.</td><td colspan="8" style="border:none"></td>')
@@ -3669,10 +3697,11 @@ function enhanceMainTeacherListWithLocks() {
     var htmlDoc = '<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8">'
       + '<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>'
       + '<x:Name>Ek Ders Onayi</x:Name><x:WorksheetOptions><x:Print><x:ValidPrinterInfo/>'
-      + '<x:PaperSizeIndex>9</x:PaperSizeIndex><x:Scale>60</x:Scale><x:Orientation>Landscape</x:Orientation>'
-      + '</x:Print></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->'
-      + '<style>td{border:1px solid #000;padding:2px 4px;font-family:Calibri,Arial;font-size:10px;vertical-align:middle;mso-number-format:"\\@"}</style></head>'
-      + '<body><table>'+head+hdrRow+body+totalRow+footer+'</table></body></html>';
+      + '<x:PaperSizeIndex>9</x:PaperSizeIndex><x:Scale>55</x:Scale><x:Orientation>Landscape</x:Orientation>'
+      + '<x:HorizontalResolution>600</x:HorizontalResolution></x:Print><x:DoNotDisplayGridlines/>'
+      + '</x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->'
+      + '<style>table{border-collapse:collapse}td{border:0.5pt solid #000;padding:2px 3px;font-family:Calibri,Arial;font-size:10px;vertical-align:middle;mso-number-format:\'\\@\'}</style></head>'
+      + '<body><table>'+colgroup+head+row1+row2+body+totalRow+footer+'</table></body></html>';
 
     var blob = new Blob(["\ufeff"+htmlDoc], { type: "application/vnd.ms-excel;charset=utf-8" });
     var url = URL.createObjectURL(blob);
