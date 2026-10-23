@@ -3433,7 +3433,7 @@ function enhanceMainTeacherListWithLocks() {
 #op-print-header, #op-print-footer { display: none; }
 @media print {
   /* Enjekte arayüz ve menüler baskıda görünmesin */
-  header, #op-backup-btn, #op-import-btn, #op-tools-group,
+  header, #op-backup-btn, #op-import-btn, #op-fee-btn, #op-fee-modal, #op-tools-group,
   #op-recovery-bar, #op-backup-modal, #op-import-modal, #op-tool-modal,
   [data-op-row-tools] { display: none !important; }
   /* Resmi başlık ve imza alanı görünsün */
@@ -3494,6 +3494,246 @@ function enhanceMainTeacherListWithLocks() {
   if (window.addEventListener) window.addEventListener("beforeprint", fill);
   /* beforeprint desteklemeyen tarayıcılar için önceden hazırla */
   [800, 2200].forEach(function(ms){ setTimeout(function(){ try{ fill(); }catch(e){} }, ms); });
+})();
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   OkulPro — Ek Ders Ücret Onayı (programdan tek tuşla)
+   ─────────────────────────────────────────────────────────────────────
+   Programdaki öğretmen ders saatlerinden ek ders hesabını çıkarır:
+     Okutulan ders → Maaş karşılığı (sınıf 18 / branş 15) → Ek ders →
+     Hazırlık-planlama (her 10 saate 1) → Toplam ek ders.
+   Tablo düzenlenebilir; Excel'e aktarılır. Observer YOK.
+   NOT: İlçe MEM'in resmi 20 sütunlu şablonu değildir; ek ders taslağıdır.
+   ═══════════════════════════════════════════════════════════════════════ */
+(function(){
+  "use strict";
+  if (!window.location || !String(window.location.pathname).startsWith("/app")) return;
+
+  var KEY = "okulpro_veri";
+
+  function getData(){
+    try { return JSON.parse(localStorage.getItem(KEY)||"{}"); } catch(e){ return {}; }
+  }
+  function schoolName(){
+    try {
+      var s = getData().school || {};
+      return s.name || s.ad || s.okulAdi || s.okul || "";
+    } catch(e){ return ""; }
+  }
+  function donem(){
+    var d = new Date();
+    var y = d.getMonth() >= 7 ? d.getFullYear() : d.getFullYear()-1;
+    return y + "–" + (y+1);
+  }
+
+  /* Her öğretmen için programdan haftalık okutulan ders saati */
+  function computeRows(){
+    var d = getData();
+    var teachers = d.teachers || [];
+    var asns = d.asns || [];
+    var hours = {};
+    asns.forEach(function(a){
+      var h = parseInt(a.hw,10); if(isNaN(h)) h=0;
+      hours[a.tId] = (hours[a.tId]||0) + h;
+    });
+    return teachers.map(function(t){
+      var okutulan = hours[t.id] || 0;
+      var br = (t.branch||"").toLowerCase();
+      var sinif = /s[ıi]n[ıi]f|okul öncesi|okul oncesi|ana ?s[ıi]n[ıi]f|anas[ıi]n[ıi]f/.test(br);
+      var maas = sinif ? 18 : 15;
+      var ekDers = Math.max(0, okutulan - maas);
+      var hazirlik = Math.floor(okutulan/10);
+      return {
+        id: t.id, name: t.name||"", gorev: t.branch||"",
+        okutulan: okutulan, maas: maas, ekDers: ekDers, hazirlik: hazirlik,
+        aciklama: ""
+      };
+    }).sort(function(a,b){
+      /* Sınıf öğretmenleri önce, sonra alfabetik */
+      return a.name.localeCompare(b.name, "tr");
+    });
+  }
+
+  var ROWS = [];
+
+  function recalc(i){
+    var r = ROWS[i];
+    r.ekDers = Math.max(0, r.okutulan - r.maas);
+    var tot = document.getElementById("op-fee-total-"+i);
+    var ek  = document.getElementById("op-fee-ek-"+i);
+    if (ek) ek.textContent = r.ekDers;
+    if (tot) tot.textContent = (r.ekDers + r.hazirlik);
+    updateFooter();
+  }
+  function updateFooter(){
+    var sOk=0,sEk=0,sHaz=0,sTop=0;
+    ROWS.forEach(function(r){ sOk+=r.okutulan; sEk+=r.ekDers; sHaz+=r.hazirlik; sTop+=(r.ekDers+r.hazirlik); });
+    [["op-fee-sum-ok",sOk],["op-fee-sum-ek",sEk],["op-fee-sum-haz",sHaz],["op-fee-sum-top",sTop]].forEach(function(p){
+      var el=document.getElementById(p[0]); if(el) el.textContent=p[1];
+    });
+  }
+
+  /* ── Excel export (.xls, kütüphanesiz, çevrimdışı) ── */
+  function exportExcel(){
+    var okul = (document.getElementById("op-fee-okul")||{}).value || schoolName() || "";
+    var head =
+      '<tr><td colspan="9" style="text-align:center;font-weight:bold;font-size:14px">'+esc(okul)+'</td></tr>'
+      + '<tr><td colspan="9" style="text-align:center;font-weight:bold">'+donem()+' Eğitim-Öğretim Yılı Ek Ders Ücret Çizelgesi (Taslak)</td></tr>'
+      + '<tr><td colspan="9"></td></tr>';
+    var cols = '<tr style="background:#dbeafe;font-weight:bold">'
+      + th("Sıra")+th("Adı Soyadı")+th("Görevi / Branşı")+th("Haftalık Okutulan")
+      + th("Maaş Karşılığı")+th("Ek Ders")+th("Hazırlık-Planlama")+th("Toplam Ek Ders")+th("Açıklama")+'</tr>';
+    var body = ROWS.map(function(r,i){
+      return '<tr>'+td(i+1)+td(esc(r.name))+td(esc(r.gorev))+td(r.okutulan)
+        +td(r.maas)+td(r.ekDers)+td(r.hazirlik)+td(r.ekDers+r.hazirlik)+td(esc(r.aciklama))+'</tr>';
+    }).join("");
+    var sOk=0,sEk=0,sHaz=0,sTop=0;
+    ROWS.forEach(function(r){ sOk+=r.okutulan; sEk+=r.ekDers; sHaz+=r.hazirlik; sTop+=(r.ekDers+r.hazirlik); });
+    var foot = '<tr style="font-weight:bold;background:#f1f5f9">'+td("")+td("TOPLAM")+td("")+td(sOk)+td("")+td(sEk)+td(sHaz)+td(sTop)+td("")+'</tr>';
+    var sig = '<tr><td colspan="9"></td></tr><tr><td colspan="9"></td></tr>'
+      + '<tr><td colspan="5"></td><td colspan="4" style="text-align:center">Uygun görülmüştür.</td></tr>'
+      + '<tr><td colspan="9"></td></tr>'
+      + '<tr><td colspan="5"></td><td colspan="4" style="text-align:center;font-weight:bold">Okul Müdürü</td></tr>';
+
+    var html = '<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8">'
+      + '<style>td,th{border:1px solid #000;padding:3px 6px;font-family:Calibri,Arial;font-size:11px}</style></head>'
+      + '<body><table>'+head+cols+body+foot+sig+'</table></body></html>';
+
+    var blob = new Blob(["﻿"+html], { type: "application/vnd.ms-excel;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    var fn = "ek-ders-onayi-" + donem().replace("–","-") + ".xls";
+    a.href=url; a.download=fn; document.body.appendChild(a); a.click();
+    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+  }
+  function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+  function th(t){ return '<td style="text-align:center">'+t+'</td>'; }
+  function td(t){ return '<td>'+t+'</td>'; }
+
+  /* ── UI: Buton ── */
+  function makeBtn(){
+    if (document.getElementById("op-fee-btn")) return;
+    var header = document.querySelector("header"); if(!header) return;
+    var btn = document.createElement("button");
+    btn.id = "op-fee-btn";
+    btn.title = "Programdan ek ders ücret onayı hazırla";
+    btn.style.cssText = [
+      "display:inline-flex","align-items:center","gap:6px","padding:7px 12px","margin-left:8px",
+      "background:#fff","color:#047857","border:1px solid #a7f3d0","border-radius:10px","cursor:pointer",
+      "font-size:13px","font-weight:700","font-family:inherit","white-space:nowrap","box-shadow:0 1px 2px rgba(15,23,42,0.04)","transition:all .15s"
+    ].join(";");
+    btn.innerHTML = '<span style="font-size:14px">💰</span> Ek Ders Onayı';
+    btn.onmouseenter=function(){ btn.style.background="#ecfdf5"; btn.style.borderColor="#34d399"; };
+    btn.onmouseleave=function(){ btn.style.background="#fff"; btn.style.borderColor="#a7f3d0"; };
+    btn.onclick=function(e){ e.stopPropagation(); openPanel(); };
+    var imp = document.getElementById("op-import-btn");
+    if (imp && imp.parentNode) imp.parentNode.insertBefore(btn, imp);
+    else {
+      var anchor = header.querySelector('a[href="/"]') || header.firstChild;
+      if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(btn, anchor.nextSibling);
+      else header.appendChild(btn);
+    }
+  }
+
+  function numInput(i, field, val){
+    return '<input type="number" min="0" value="'+val+'" data-fee-i="'+i+'" data-fee-f="'+field+'" '
+      + 'style="width:52px;padding:3px 5px;border:1px solid #cbd5e1;border-radius:5px;font-size:12px;text-align:center;font-family:inherit">';
+  }
+
+  function openPanel(){
+    closePanel();
+    ROWS = computeRows();
+    var ov=document.createElement("div");
+    ov.id="op-fee-modal";
+    ov.style.cssText="position:fixed;inset:0;z-index:99998;background:rgba(15,23,42,0.5);backdrop-filter:blur(3px);display:flex;align-items:flex-start;justify-content:center;padding:32px 12px;overflow-y:auto";
+    ov.onclick=function(e){ if(e.target===ov) closePanel(); };
+    var box=document.createElement("div");
+    box.style.cssText="background:#fff;border-radius:16px;box-shadow:0 24px 60px -12px rgba(15,23,42,0.4);width:min(97vw,860px);overflow:hidden";
+    box.onclick=function(e){ e.stopPropagation(); };
+
+    if (!ROWS.length){
+      box.innerHTML = '<div style="padding:40px 24px;text-align:center">'
+        + '<div style="font-size:40px;margin-bottom:12px">💰</div>'
+        + '<div style="font-size:16px;font-weight:700;color:#0f172a;margin-bottom:6px">Henüz öğretmen/atama yok</div>'
+        + '<div style="font-size:13px;color:#64748b;margin-bottom:18px">Önce öğretmen ve ders atamalarını girin; ek ders onayı programdaki saatlerden hesaplanır.</div>'
+        + '<button id="op-fee-close" style="padding:10px 20px;background:#047857;border:none;border-radius:9px;color:#fff;font-weight:700;cursor:pointer;font-family:inherit">Kapat</button></div>';
+      ov.appendChild(box); document.body.appendChild(ov);
+      document.getElementById("op-fee-close").onclick=closePanel;
+      return;
+    }
+
+    var rowsHtml = ROWS.map(function(r,i){
+      return '<tr style="border-bottom:1px solid #f1f5f9">'
+        + '<td style="padding:6px 8px;color:#94a3b8;font-size:12px">'+(i+1)+'</td>'
+        + '<td style="padding:6px 8px;font-size:13px;font-weight:600;color:#0f172a">'+esc(r.name)+'</td>'
+        + '<td style="padding:6px 8px;font-size:12px;color:#64748b">'+esc(r.gorev)+'</td>'
+        + '<td style="padding:6px 8px;text-align:center;font-weight:700;color:#047857">'+r.okutulan+'</td>'
+        + '<td style="padding:6px 8px;text-align:center">'+numInput(i,"maas",r.maas)+'</td>'
+        + '<td style="padding:6px 8px;text-align:center;font-weight:600" id="op-fee-ek-'+i+'">'+r.ekDers+'</td>'
+        + '<td style="padding:6px 8px;text-align:center">'+numInput(i,"hazirlik",r.hazirlik)+'</td>'
+        + '<td style="padding:6px 8px;text-align:center;font-weight:700;color:#4338ca" id="op-fee-total-'+i+'">'+(r.ekDers+r.hazirlik)+'</td>'
+        + '</tr>';
+    }).join("");
+
+    box.innerHTML =
+      '<div style="display:flex;align-items:center;gap:11px;padding:16px 20px;border-bottom:1px solid #f1f5f9">'
+      + '<div style="width:38px;height:38px;border-radius:11px;background:#d1fae5;display:flex;align-items:center;justify-content:center;font-size:19px">💰</div>'
+      + '<div style="flex:1"><div style="font-size:16px;font-weight:800;color:#0f172a">Ek Ders Ücret Onayı — Taslak</div>'
+      + '<div style="font-size:12px;color:#64748b">Saatler programdan hesaplandı. Maaş karşılığı ve hazırlık düzenlenebilir.</div></div>'
+      + '<button id="op-fee-close" style="width:32px;height:32px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:15px;cursor:pointer">✕</button>'
+      + '</div>'
+      + '<div style="padding:14px 20px">'
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">'
+      + '<label style="font-size:12px;font-weight:600;color:#334155">Okul adı:</label>'
+      + '<input id="op-fee-okul" value="'+esc(schoolName())+'" placeholder="Okul adını yazın" style="flex:1;padding:7px 10px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;font-family:inherit">'
+      + '</div>'
+      + '<div style="max-height:46vh;overflow:auto;border:1px solid #e2e8f0;border-radius:10px">'
+      + '<table style="width:100%;border-collapse:collapse;font-family:inherit">'
+      + '<thead style="position:sticky;top:0;background:#f8fafc;z-index:1"><tr style="font-size:11px;color:#475569;text-transform:uppercase;letter-spacing:.03em">'
+      + '<th style="padding:9px 8px;text-align:left">#</th><th style="padding:9px 8px;text-align:left">Adı Soyadı</th>'
+      + '<th style="padding:9px 8px;text-align:left">Görev/Branş</th><th style="padding:9px 8px">Okutulan</th>'
+      + '<th style="padding:9px 8px">Maaş Krş.</th><th style="padding:9px 8px">Ek Ders</th>'
+      + '<th style="padding:9px 8px">Haz.-Plan.</th><th style="padding:9px 8px">Toplam</th></tr></thead>'
+      + '<tbody>'+rowsHtml+'</tbody>'
+      + '<tfoot><tr style="background:#f1f5f9;font-weight:700;font-size:12px"><td colspan="3" style="padding:8px">TOPLAM</td>'
+      + '<td style="text-align:center" id="op-fee-sum-ok">0</td><td></td>'
+      + '<td style="text-align:center" id="op-fee-sum-ek">0</td><td style="text-align:center" id="op-fee-sum-haz">0</td>'
+      + '<td style="text-align:center;color:#4338ca" id="op-fee-sum-top">0</td></tr></tfoot>'
+      + '</table></div>'
+      + '<div style="font-size:11.5px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:9px 11px;margin-top:12px;line-height:1.5">'
+      + '⚠️ Bu bir <b>taslaktır</b>. Özel eğitim (%25), nöbet, DYK/İYEP, ücretli öğretmen (her 2 saate 1), yönetici saatleri gibi kurallar kişiye göre değişir — İlçe MEM\'in resmi şablonuna taşırken kontrol edin.'
+      + '</div>'
+      + '</div>'
+      + '<div style="display:flex;gap:10px;padding:14px 20px;border-top:1px solid #f1f5f9">'
+      + '<button id="op-fee-cancel" style="flex:1;padding:12px;background:#fff;border:1px solid #cbd5e1;border-radius:10px;color:#334155;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit">Kapat</button>'
+      + '<button id="op-fee-export" style="flex:2;padding:12px;background:#047857;border:none;border-radius:10px;color:#fff;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit">📥 Excel\'e Aktar</button>'
+      + '</div>';
+
+    ov.appendChild(box); document.body.appendChild(ov);
+    updateFooter();
+    document.getElementById("op-fee-close").onclick=closePanel;
+    document.getElementById("op-fee-cancel").onclick=closePanel;
+    document.getElementById("op-fee-export").onclick=exportExcel;
+    /* Düzenlenebilir alanlar */
+    Array.prototype.forEach.call(box.querySelectorAll("input[data-fee-i]"), function(inp){
+      inp.oninput=function(){
+        var i=parseInt(inp.getAttribute("data-fee-i"),10);
+        var f=inp.getAttribute("data-fee-f");
+        var v=parseInt(inp.value,10); if(isNaN(v)||v<0) v=0;
+        ROWS[i][f]=v;
+        recalc(i);
+      };
+    });
+    document.addEventListener("keydown", escClose);
+  }
+  function escClose(e){ if(e.key==="Escape") closePanel(); }
+  function closePanel(){ var m=document.getElementById("op-fee-modal"); if(m) m.remove(); document.removeEventListener("keydown", escClose); }
+
+  function tick(){ try{ makeBtn(); }catch(e){} }
+  [500,1200,2300,3900].forEach(function(d){ setTimeout(tick,d); });
+  setInterval(tick, 2500);
 })();
 </script>
 
